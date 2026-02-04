@@ -1,0 +1,84 @@
+# ---------------------------
+# Python virtual environments
+# ---------------------------
+venv/
+venv_simple/
+.env
+.env.*
+
+# ---------------------------
+# Python cache / compiled files
+# ---------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ---------------------------
+# Jupyter notebooks checkpoints
+# ---------------------------
+.ipynb_checkpoints/
+
+# ---------------------------
+# OS / Editor generated files
+# ---------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ---------------------------
+# Logs
+# ---------------------------
+*.log
+
+# ---------------------------
+# Temporary / runtime files
+# ---------------------------
+*.tmp
+*.temp
+
+# ---------------------------
+# Model & ML artifacts (auto-generated)
+# ---------------------------
+models/*.pkl
+models/*.joblib
+models/*.h5
+
+# ---------------------------
+# Notebooks output (optional but recommended)
+# ---------------------------
+notebooks/**/output/
+notebooks/**/results/
+
+# ---------------------------
+# Generated analytics / results
+# ---------------------------
+data/**/analytics/
+data/**/results.csv
+
+# ---------------------------
+# Node / frontend (if added later)
+# ---------------------------
+node_modules/
+dist/
+build/
+
+# ---------------------------
+# Ignore uploaded/demo images (optional)
+# ---------------------------
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# ---------------------------
+# Flask cache
+# ---------------------------
+instance/
+
+# ---------------------------
+# API keys / secrets
+# ---------------------------
+secrets/
+config/secrets.json

@@ -1,0 +1,25 @@
+{
+  "module_id": "OS-MOD-03",
+  "subject": "Operating Systems",
+  "module_name": "Deadlocks",
+  "difficulty": "Medium",
+  "estimated_hours": 6,
+  "prerequisites": [
+    "Process Management",
+    "Resource Management"
+  ],
+  "learning_objectives": [
+    "Understand the concept of deadlock",
+    "Identify necessary conditions for deadlock",
+    "Analyze deadlock handling techniques",
+    "Apply deadlock prevention and avoidance methods"
+  ],
+  "subtopics": [
+    "Deadlock Definition",
+    "Necessary Conditions",
+    "Resource Allocation Graph",
+    "Deadlock Prevention",
+    "Deadlock Avoidance",
+    "Deadlock Detection and Recovery"
+  ]
+}

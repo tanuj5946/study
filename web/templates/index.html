@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>StudySync Prototype</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h1>StudySync – Module Prototype</h1>
+
+<h2>Module Info</h2>
+<p><b>Subject:</b> {{ module.subject }}</p>
+<p><b>Module:</b> {{ module.module_name }}</p>
+<p><b>Difficulty:</b> {{ module.difficulty }}</p>
+
+<h2>Notes</h2>
+<ul>
+    {% for note in notes %}
+        <li>{{ note | safe }}</li>
+    {% endfor %}
+</ul>
+
+<h2>Assessment</h2>
+
+<form method="post">
+    {% for q in questions %}
+        <p><b>{{ loop.index }}. {{ q.question }}</b></p>
+        <input type="radio" name="{{ q.question_id }}" value="{{ q.correct }}"> {{ q.correct }}<br>
+        <input type="radio" name="{{ q.question_id }}" value="wrong"> Wrong Option<br>
+    {% endfor %}
+    <br>
+    <button type="submit">Submit Test</button>
+</form>
+
+{% if score %}
+    <h2>Result</h2>
+    <p><b>Score:</b> {{ score }}</p>
+    <p><b>Weak Topic:</b> {{ weak_topic }}</p>
+{% endif %}
+
+</body>
+</html>

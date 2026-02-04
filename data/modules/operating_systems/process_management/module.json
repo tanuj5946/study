@@ -1,0 +1,33 @@
+{
+  "module_id": "OS-MOD-03",
+  "subject": "Operating Systems",
+  "module_name": "Process Management",
+  "difficulty": "Medium",
+  "estimated_hours": 8,
+  "units": [
+    {
+      "unit": "3.1",
+      "title": "Process Concept",
+      "topics": [
+        "Process vs Program",
+        "Process States",
+        "Process Control Block (PCB)"
+      ]
+    },
+    {
+      "unit": "3.2",
+      "title": "Process Operations",
+      "topics": [
+        "Process Creation",
+        "Process Termination",
+        "Context Switching"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Explain the lifecycle of a process",
+    "Describe context switching",
+    "Differentiate between process and program",
+    "Understand process states and PCB"
+  ]
+}

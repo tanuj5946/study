@@ -1,0 +1,54 @@
+[
+  {
+    "question_id": "PM-Q1",
+    "topic": "Process Concept",
+    "difficulty": "Easy",
+    "question": "What is a process?",
+    "options": [
+      "A program stored on disk",
+      "A program in execution",
+      "A system call",
+      "A hardware component"
+    ],
+    "correct": "A program in execution"
+  },
+  {
+    "question_id": "PM-Q2",
+    "topic": "Process States",
+    "difficulty": "Easy",
+    "question": "Which state represents a process waiting for CPU allocation?",
+    "options": [
+      "New",
+      "Ready",
+      "Waiting",
+      "Terminated"
+    ],
+    "correct": "Ready"
+  },
+  {
+    "question_id": "PM-Q3",
+    "topic": "PCB",
+    "difficulty": "Medium",
+    "question": "Which of the following is stored in PCB?",
+    "options": [
+      "Source code",
+      "Program counter",
+      "Compiler output",
+      "User password"
+    ],
+    "correct": "Program counter"
+  },
+  {
+    "question_id": "PM-Q4",
+    "topic": "Context Switching",
+    "difficulty": "Medium",
+    "question": "Context switching is required for:",
+    "options": [
+      "Deadlock prevention",
+      "Multitasking",
+      "Memory allocation",
+      "File management"
+    ],
+    "correct": "Multitasking"
+  }
+]
