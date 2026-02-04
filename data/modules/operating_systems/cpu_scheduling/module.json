@@ -1,0 +1,33 @@
+{
+  "module_id": "OS-MOD-04",
+  "subject": "Operating Systems",
+  "module_name": "CPU Scheduling",
+  "difficulty": "Medium",
+  "estimated_hours": 9,
+  "units": [
+    {
+      "unit": "4.1",
+      "title": "Scheduling Basics",
+      "topics": [
+        "Scheduling Criteria",
+        "Preemptive vs Non-preemptive Scheduling"
+      ]
+    },
+    {
+      "unit": "4.2",
+      "title": "Scheduling Algorithms",
+      "topics": [
+        "FCFS",
+        "SJF",
+        "Priority Scheduling",
+        "Round Robin",
+        "Multilevel Queue Scheduling"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Apply CPU scheduling algorithms",
+    "Compute waiting time and turnaround time",
+    "Compare different scheduling strategies"
+  ]
+}

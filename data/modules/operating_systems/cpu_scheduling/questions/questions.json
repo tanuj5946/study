@@ -1,0 +1,54 @@
+[
+  {
+    "question_id": "CS-Q1",
+    "topic": "Scheduling Criteria",
+    "difficulty": "Easy",
+    "question": "Which scheduling criterion measures total time from submission to completion?",
+    "options": [
+      "Waiting Time",
+      "Turnaround Time",
+      "Response Time",
+      "Throughput"
+    ],
+    "correct": "Turnaround Time"
+  },
+  {
+    "question_id": "CS-Q2",
+    "topic": "Preemptive Scheduling",
+    "difficulty": "Easy",
+    "question": "Which scheduling allows CPU to be preempted?",
+    "options": [
+      "FCFS",
+      "Non-preemptive",
+      "Preemptive",
+      "Batch scheduling"
+    ],
+    "correct": "Preemptive"
+  },
+  {
+    "question_id": "CS-Q3",
+    "topic": "SJF",
+    "difficulty": "Medium",
+    "question": "Which algorithm gives minimum average waiting time?",
+    "options": [
+      "FCFS",
+      "SJF",
+      "Round Robin",
+      "Priority"
+    ],
+    "correct": "SJF"
+  },
+  {
+    "question_id": "CS-Q4",
+    "topic": "Round Robin",
+    "difficulty": "Medium",
+    "question": "Performance of Round Robin depends on:",
+    "options": [
+      "Priority",
+      "Arrival time",
+      "Time quantum",
+      "Burst time only"
+    ],
+    "correct": "Time quantum"
+  }
+]

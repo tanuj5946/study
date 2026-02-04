@@ -1,0 +1,54 @@
+[
+  {
+    "question_id": "TC-Q1",
+    "topic": "Thread Concept",
+    "difficulty": "Easy",
+    "question": "What is a thread?",
+    "options": [
+      "A process in execution",
+      "Smallest unit of CPU execution",
+      "A system call",
+      "A memory block"
+    ],
+    "correct": "Smallest unit of CPU execution"
+  },
+  {
+    "question_id": "TC-Q2",
+    "topic": "Threads vs Processes",
+    "difficulty": "Easy",
+    "question": "Which resource is shared among threads of the same process?",
+    "options": [
+      "Stack",
+      "Registers",
+      "Program Counter",
+      "Address Space"
+    ],
+    "correct": "Address Space"
+  },
+  {
+    "question_id": "TC-Q3",
+    "topic": "Multithreading Models",
+    "difficulty": "Medium",
+    "question": "Which model maps each user thread to a kernel thread?",
+    "options": [
+      "Many-to-One",
+      "One-to-One",
+      "Many-to-Many",
+      "Single-threaded"
+    ],
+    "correct": "One-to-One"
+  },
+  {
+    "question_id": "TC-Q4",
+    "topic": "Multithreading Models",
+    "difficulty": "Medium",
+    "question": "Which model allows flexible mapping between user and kernel threads?",
+    "options": [
+      "Many-to-One",
+      "One-to-One",
+      "Many-to-Many",
+      "Batch Model"
+    ],
+    "correct": "Many-to-Many"
+  }
+]

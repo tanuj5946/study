@@ -1,0 +1,31 @@
+{
+  "module_id": "OS-MOD-05",
+  "subject": "Operating Systems",
+  "module_name": "Threads and Concurrency",
+  "difficulty": "Medium",
+  "estimated_hours": 8,
+  "units": [
+    {
+      "unit": "5.1",
+      "title": "Threads",
+      "topics": [
+        "Thread Concept",
+        "User Threads vs Kernel Threads"
+      ]
+    },
+    {
+      "unit": "5.2",
+      "title": "Multithreading Models",
+      "topics": [
+        "One-to-One Model",
+        "Many-to-One Model",
+        "Many-to-Many Model"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Distinguish between threads and processes",
+    "Explain benefits of multithreading",
+    "Understand multithreading models"
+  ]
+}
