@@ -1,0 +1,29 @@
+{
+  "module_id": "OS-MOD-08",
+  "subject": "Operating Systems",
+  "module_name": "Memory Management",
+  "difficulty": "Medium",
+  "estimated_hours": 8,
+  "units": [
+    {
+      "unit": "8.1",
+      "title": "Memory Basics",
+      "topics": [
+        "Logical vs Physical Address",
+        "Contiguous Memory Allocation"
+      ]
+    },
+    {
+      "unit": "8.2",
+      "title": "Paging and Segmentation",
+      "topics": [
+        "Page Tables",
+        "Fragmentation"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Perform address translation",
+    "Explain fragmentation in memory management"
+  ]
+}

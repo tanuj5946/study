@@ -1,0 +1,40 @@
+{
+  "module_id": "OS-MOD-06",
+  "subject": "Operating Systems",
+  "module_name": "Process Synchronization",
+  "difficulty": "High",
+  "estimated_hours": 10,
+  "units": [
+    {
+      "unit": "6.1",
+      "title": "Critical Section Problem",
+      "topics": [
+        "Race Condition",
+        "Mutual Exclusion"
+      ]
+    },
+    {
+      "unit": "6.2",
+      "title": "Synchronization Tools",
+      "topics": [
+        "Mutex",
+        "Semaphore",
+        "Monitor"
+      ]
+    },
+    {
+      "unit": "6.3",
+      "title": "Classical Problems",
+      "topics": [
+        "Producer Consumer",
+        "Dining Philosophers",
+        "Readers Writers"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Solve synchronization problems",
+    "Implement semaphore logic",
+    "Understand critical section handling"
+  ]
+}

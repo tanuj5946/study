@@ -1,0 +1,54 @@
+[
+  {
+    "question_id": "PS-Q1",
+    "topic": "Critical Section",
+    "difficulty": "Easy",
+    "question": "What is a critical section?",
+    "options": [
+      "Part of code accessing shared resources",
+      "A CPU scheduling algorithm",
+      "A memory block",
+      "A system call"
+    ],
+    "correct": "Part of code accessing shared resources"
+  },
+  {
+    "question_id": "PS-Q2",
+    "topic": "Race Condition",
+    "difficulty": "Easy",
+    "question": "Race condition occurs due to:",
+    "options": [
+      "Sequential execution",
+      "Lack of synchronization",
+      "Memory allocation",
+      "CPU scheduling"
+    ],
+    "correct": "Lack of synchronization"
+  },
+  {
+    "question_id": "PS-Q3",
+    "topic": "Semaphore",
+    "difficulty": "Medium",
+    "question": "Which operations are associated with semaphores?",
+    "options": [
+      "lock and unlock",
+      "wait and signal",
+      "open and close",
+      "read and write"
+    ],
+    "correct": "wait and signal"
+  },
+  {
+    "question_id": "PS-Q4",
+    "topic": "Classical Problems",
+    "difficulty": "Medium",
+    "question": "Which problem illustrates deadlock?",
+    "options": [
+      "Producer Consumer",
+      "Readers Writers",
+      "Dining Philosophers",
+      "Round Robin"
+    ],
+    "correct": "Dining Philosophers"
+  }
+]

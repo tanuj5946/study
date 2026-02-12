@@ -1,7 +1,14 @@
-A Resource Allocation Graph (RAG) is a directed graph that represents
-the allocation of resources to processes.<br>
+### Resource Allocation Graph
 
-If the graph contains a cycle:<br>
-- Single instance per resource → Deadlock exists<br>  
+A resource allocation graph is a directed graph used to represent
+resource allocation and requests in a system.
 
-- Multiple instances → Deadlock may exist<br>
+The graph consists of:
+- Process nodes
+- Resource nodes
+- Request edges
+- Assignment edges
+
+If the graph contains a cycle, a deadlock may exist.
+
+Resource allocation graphs are useful for deadlock detection.

@@ -1,25 +1,32 @@
 {
-  "module_id": "OS-MOD-03",
+  "module_id": "OS-MOD-07",
   "subject": "Operating Systems",
   "module_name": "Deadlocks",
-  "difficulty": "Medium",
-  "estimated_hours": 6,
-  "prerequisites": [
-    "Process Management",
-    "Resource Management"
+  "difficulty": "High",
+  "estimated_hours": 8,
+  "units": [
+    {
+      "unit": "7.1",
+      "title": "Deadlock Basics",
+      "topics": [
+        "Necessary Conditions",
+        "Resource Allocation Graph"
+      ]
+    },
+    {
+      "unit": "7.2",
+      "title": "Deadlock Handling",
+      "topics": [
+        "Deadlock Prevention",
+        "Deadlock Avoidance (Banker's Algorithm)",
+        "Deadlock Detection",
+        "Deadlock Recovery"
+      ]
+    }
   ],
-  "learning_objectives": [
-    "Understand the concept of deadlock",
-    "Identify necessary conditions for deadlock",
-    "Analyze deadlock handling techniques",
-    "Apply deadlock prevention and avoidance methods"
-  ],
-  "subtopics": [
-    "Deadlock Definition",
-    "Necessary Conditions",
-    "Resource Allocation Graph",
-    "Deadlock Prevention",
-    "Deadlock Avoidance",
-    "Deadlock Detection and Recovery"
+  "learning_outcomes": [
+    "Analyze deadlock scenarios",
+    "Apply Banker's Algorithm",
+    "Understand deadlock handling techniques"
   ]
 }

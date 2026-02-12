@@ -1,7 +1,13 @@
-Deadlock avoidance requires advance information about how resources
-will be requested.<br>
+### Deadlock Avoidance (Banker's Algorithm)
 
-The system dynamically examines the resource allocation state and ensures that the system remains in a safe state.<br>
+Deadlock avoidance requires advance information about resource
+requirements of processes.
 
-Example:<br>
-- Banker's Algorithm<br>
+The system checks whether granting a resource request will keep the
+system in a safe state.
+
+Banker's Algorithm is the most commonly used deadlock avoidance
+algorithm.
+
+A safe state ensures that all processes can complete execution
+without deadlock.

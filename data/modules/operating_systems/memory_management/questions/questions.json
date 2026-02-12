@@ -1,0 +1,54 @@
+[
+  {
+    "question_id": "MM-Q1",
+    "topic": "Logical vs Physical Address",
+    "difficulty": "Easy",
+    "question": "Which component converts logical address to physical address?",
+    "options": [
+      "CPU",
+      "MMU",
+      "Cache",
+      "Hard Disk"
+    ],
+    "correct": "MMU"
+  },
+  {
+    "question_id": "MM-Q2",
+    "topic": "Contiguous Allocation",
+    "difficulty": "Easy",
+    "question": "Which is a disadvantage of contiguous memory allocation?",
+    "options": [
+      "Simple implementation",
+      "External fragmentation",
+      "Fast access",
+      "Low overhead"
+    ],
+    "correct": "External fragmentation"
+  },
+  {
+    "question_id": "MM-Q3",
+    "topic": "Paging",
+    "difficulty": "Medium",
+    "question": "What does a page table store?",
+    "options": [
+      "Process states",
+      "Page to frame mapping",
+      "CPU registers",
+      "Disk addresses"
+    ],
+    "correct": "Page to frame mapping"
+  },
+  {
+    "question_id": "MM-Q4",
+    "topic": "Fragmentation",
+    "difficulty": "Medium",
+    "question": "Which type of fragmentation is reduced by paging?",
+    "options": [
+      "Internal fragmentation",
+      "External fragmentation",
+      "Both",
+      "None"
+    ],
+    "correct": "External fragmentation"
+  }
+]
