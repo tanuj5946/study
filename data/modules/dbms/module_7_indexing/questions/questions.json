@@ -1,0 +1,67 @@
+[
+  {
+    "question_id": "DBMS7-Q1",
+    "topic": "File Organization",
+    "difficulty": "Easy",
+    "question": "Heap file organization stores records:",
+    "options": [
+      "Sorted",
+      "In random order",
+      "In tree structure",
+      "In hash buckets"
+    ],
+    "correct": "In random order"
+  },
+  {
+    "question_id": "DBMS7-Q2",
+    "topic": "Indexing",
+    "difficulty": "Medium",
+    "question": "Dense index contains:",
+    "options": [
+      "Entry for every record",
+      "Entry for some records",
+      "No entries",
+      "Only primary keys"
+    ],
+    "correct": "Entry for every record"
+  },
+  {
+    "question_id": "DBMS7-Q3",
+    "topic": "Clustered Index",
+    "difficulty": "Medium",
+    "question": "How many clustered indexes can a table have?",
+    "options": [
+      "One",
+      "Two",
+      "Many",
+      "None"
+    ],
+    "correct": "One"
+  },
+  {
+    "question_id": "DBMS7-Q4",
+    "topic": "B+ Tree",
+    "difficulty": "Hard",
+    "question": "In B+ tree, actual data pointers are stored in:",
+    "options": [
+      "Root node",
+      "Internal nodes",
+      "Leaf nodes",
+      "All nodes"
+    ],
+    "correct": "Leaf nodes"
+  },
+  {
+    "question_id": "DBMS7-Q5",
+    "topic": "Hashing",
+    "difficulty": "Medium",
+    "question": "Hashing is efficient for:",
+    "options": [
+      "Range queries",
+      "Equality search",
+      "Sorting",
+      "Joining tables"
+    ],
+    "correct": "Equality search"
+  }
+]

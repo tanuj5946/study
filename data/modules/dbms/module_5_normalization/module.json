@@ -1,0 +1,43 @@
+{
+  "module_id": "DBMS-MOD-05",
+  "subject": "Database Management System",
+  "module_name": "Normalization",
+  "difficulty": "High",
+  "estimated_hours": 12,
+  "units": [
+    {
+      "unit": "5.1",
+      "title": "Functional Dependencies",
+      "topics": [
+        "Functional Dependency",
+        "Types of Functional Dependencies",
+        "Armstrong's Axioms",
+        "Attribute Closure"
+      ]
+    },
+    {
+      "unit": "5.2",
+      "title": "Normal Forms",
+      "topics": [
+        "1NF",
+        "2NF",
+        "3NF",
+        "BCNF"
+      ]
+    },
+    {
+      "unit": "5.3",
+      "title": "Decomposition",
+      "topics": [
+        "Lossless Join",
+        "Dependency Preservation"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Identify functional dependencies",
+    "Compute attribute closure",
+    "Normalize relations to 3NF and BCNF",
+    "Check lossless join and dependency preservation"
+  ]
+}

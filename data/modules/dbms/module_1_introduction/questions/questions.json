@@ -1,0 +1,106 @@
+[
+  {
+    "question_id": "DBMS1-Q1",
+    "topic": "Data vs Information",
+    "difficulty": "Easy",
+    "question": "Data becomes information when:",
+    "options": [
+      "It is deleted",
+      "It is processed and given meaning",
+      "It is duplicated",
+      "It is encrypted"
+    ],
+    "correct": "It is processed and given meaning"
+  },
+  {
+    "question_id": "DBMS1-Q2",
+    "topic": "Definition of DBMS",
+    "difficulty": "Easy",
+    "question": "DBMS acts as an interface between:",
+    "options": [
+      "User and Hardware",
+      "User and Database",
+      "CPU and RAM",
+      "Compiler and OS"
+    ],
+    "correct": "User and Database"
+  },
+  {
+    "question_id": "DBMS1-Q3",
+    "topic": "Characteristics of DBMS",
+    "difficulty": "Medium",
+    "question": "Which feature of DBMS reduces data duplication?",
+    "options": [
+      "Data abstraction",
+      "Controlled redundancy",
+      "Concurrency control",
+      "Data encryption"
+    ],
+    "correct": "Controlled redundancy"
+  },
+  {
+    "question_id": "DBMS1-Q4",
+    "topic": "File System Limitations",
+    "difficulty": "Medium",
+    "question": "Which problem occurs when the same data exists in multiple files?",
+    "options": [
+      "Concurrency",
+      "Redundancy",
+      "Virtualization",
+      "Normalization"
+    ],
+    "correct": "Redundancy"
+  },
+  {
+    "question_id": "DBMS1-Q5",
+    "topic": "File System vs DBMS",
+    "difficulty": "Medium",
+    "question": "Which feature is NOT provided by traditional file systems?",
+    "options": [
+      "Data storage",
+      "Concurrency control",
+      "File naming",
+      "Manual backup"
+    ],
+    "correct": "Concurrency control"
+  },
+  {
+    "question_id": "DBMS1-Q6",
+    "topic": "Three-Level Architecture",
+    "difficulty": "Medium",
+    "question": "Which level describes physical storage of data?",
+    "options": [
+      "External Level",
+      "Conceptual Level",
+      "Internal Level",
+      "Logical Level"
+    ],
+    "correct": "Internal Level"
+  },
+  {
+    "question_id": "DBMS1-Q7",
+    "topic": "Data Independence",
+    "difficulty": "Hard",
+    "question": "Logical data independence refers to:",
+    "options": [
+      "Changing physical storage without affecting schema",
+      "Changing conceptual schema without affecting user views",
+      "Changing external schema without affecting storage",
+      "Changing hardware without affecting OS"
+    ],
+    "correct": "Changing conceptual schema without affecting user views"
+  },
+  {
+    "question_id": "DBMS1-Q8",
+    "topic": "Data Models",
+    "difficulty": "Medium",
+    "question": "Which data model organizes data in tables?",
+    "options": [
+      "Hierarchical",
+      "Network",
+      "Relational",
+      "Graph"
+    ],
+    "correct": "Relational"
+  }
+]

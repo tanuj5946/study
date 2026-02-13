@@ -1,0 +1,80 @@
+[
+  {
+    "question_id": "DBMS4-Q1",
+    "topic": "DDL",
+    "difficulty": "Easy",
+    "question": "Which command creates a table?",
+    "options": [
+      "INSERT",
+      "CREATE",
+      "UPDATE",
+      "SELECT"
+    ],
+    "correct": "CREATE"
+  },
+  {
+    "question_id": "DBMS4-Q2",
+    "topic": "DML",
+    "difficulty": "Easy",
+    "question": "Which command retrieves data?",
+    "options": [
+      "DROP",
+      "ALTER",
+      "SELECT",
+      "DELETE"
+    ],
+    "correct": "SELECT"
+  },
+  {
+    "question_id": "DBMS4-Q3",
+    "topic": "WHERE Clause",
+    "difficulty": "Medium",
+    "question": "WHERE clause is used to:",
+    "options": [
+      "Group rows",
+      "Filter rows",
+      "Join tables",
+      "Delete database"
+    ],
+    "correct": "Filter rows"
+  },
+  {
+    "question_id": "DBMS4-Q4",
+    "topic": "Joins",
+    "difficulty": "Medium",
+    "question": "INNER JOIN returns:",
+    "options": [
+      "All rows from both tables",
+      "Matching rows from both tables",
+      "Only left table rows",
+      "Only right table rows"
+    ],
+    "correct": "Matching rows from both tables"
+  },
+  {
+    "question_id": "DBMS4-Q5",
+    "topic": "Aggregate Functions",
+    "difficulty": "Medium",
+    "question": "Which function calculates average value?",
+    "options": [
+      "SUM()",
+      "AVG()",
+      "COUNT()",
+      "MAX()"
+    ],
+    "correct": "AVG()"
+  },
+  {
+    "question_id": "DBMS4-Q6",
+    "topic": "GROUP BY",
+    "difficulty": "Hard",
+    "question": "HAVING clause is used with:",
+    "options": [
+      "SELECT",
+      "WHERE",
+      "GROUP BY",
+      "INSERT"
+    ],
+    "correct": "GROUP BY"
+  }
+]

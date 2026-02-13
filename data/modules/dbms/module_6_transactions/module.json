@@ -1,0 +1,54 @@
+{
+  "module_id": "DBMS-MOD-06",
+  "subject": "Database Management System",
+  "module_name": "Transactions and Concurrency Control",
+  "difficulty": "High",
+  "estimated_hours": 14,
+  "units": [
+    {
+      "unit": "6.1",
+      "title": "Transaction Management",
+      "topics": [
+        "Transaction Concept",
+        "ACID Properties",
+        "Transaction States"
+      ]
+    },
+    {
+      "unit": "6.2",
+      "title": "Schedules and Serializability",
+      "topics": [
+        "Serial Schedule",
+        "Conflict Serializability",
+        "View Serializability",
+        "Precedence Graph"
+      ]
+    },
+    {
+      "unit": "6.3",
+      "title": "Locking Protocols",
+      "topics": [
+        "Shared Lock",
+        "Exclusive Lock",
+        "Two-Phase Locking",
+        "Strict 2PL"
+      ]
+    },
+    {
+      "unit": "6.4",
+      "title": "Deadlocks and Recovery",
+      "topics": [
+        "Deadlock Detection",
+        "Wait-For Graph",
+        "Cascading Rollback",
+        "Recoverable Schedule"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Explain ACID properties",
+    "Analyze schedules for serializability",
+    "Apply 2PL protocol",
+    "Detect and resolve deadlocks"
+  ]
+}

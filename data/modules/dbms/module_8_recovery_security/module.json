@@ -1,0 +1,51 @@
+{
+  "module_id": "DBMS-MOD-08",
+  "subject": "Database Management System",
+  "module_name": "Recovery and Security",
+  "difficulty": "Medium",
+  "estimated_hours": 10,
+  "units": [
+    {
+      "unit": "8.1",
+      "title": "Failure and Recovery",
+      "topics": [
+        "Types of Failures",
+        "Recovery Concepts"
+      ]
+    },
+    {
+      "unit": "8.2",
+      "title": "Log-Based Recovery",
+      "topics": [
+        "Write-Ahead Logging",
+        "Deferred Update",
+        "Immediate Update",
+        "UNDO and REDO"
+      ]
+    },
+    {
+      "unit": "8.3",
+      "title": "Checkpoint and Shadow Paging",
+      "topics": [
+        "Checkpointing",
+        "Shadow Paging"
+      ]
+    },
+    {
+      "unit": "8.4",
+      "title": "Database Security",
+      "topics": [
+        "Authentication",
+        "Authorization",
+        "Access Control Models",
+        "GRANT and REVOKE"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Identify types of failures",
+    "Explain log-based recovery",
+    "Describe checkpoint mechanism",
+    "Apply database security principles"
+  ]
+}

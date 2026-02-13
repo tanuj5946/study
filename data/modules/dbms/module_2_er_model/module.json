@@ -1,0 +1,55 @@
+{
+  "module_id": "DBMS-MOD-02",
+  "subject": "Database Management System",
+  "module_name": "Entity Relationship Model",
+  "difficulty": "Medium",
+  "estimated_hours": 10,
+  "units": [
+    {
+      "unit": "2.1",
+      "title": "Entities and Attributes",
+      "topics": [
+        "Entity",
+        "Entity Set",
+        "Types of Attributes",
+        "Primary Key"
+      ]
+    },
+    {
+      "unit": "2.2",
+      "title": "Relationships",
+      "topics": [
+        "Relationship",
+        "Degree of Relationship",
+        "Cardinality Constraints",
+        "Participation Constraints"
+      ]
+    },
+    {
+      "unit": "2.3",
+      "title": "Advanced ER Concepts",
+      "topics": [
+        "Weak Entity",
+        "Identifying Relationship",
+        "Generalization",
+        "Specialization",
+        "Aggregation"
+      ]
+    },
+    {
+      "unit": "2.4",
+      "title": "ER to Relational Mapping",
+      "topics": [
+        "Mapping Strong Entities",
+        "Mapping Weak Entities",
+        "Mapping Relationships"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Identify entities and relationships",
+    "Draw ER diagrams",
+    "Apply cardinality and participation constraints",
+    "Convert ER diagrams to relational schema"
+  ]
+}

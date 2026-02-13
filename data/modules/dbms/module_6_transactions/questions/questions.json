@@ -1,0 +1,67 @@
+[
+  {
+    "question_id": "DBMS6-Q1",
+    "topic": "ACID",
+    "difficulty": "Easy",
+    "question": "Which property ensures transaction is all or nothing?",
+    "options": [
+      "Consistency",
+      "Isolation",
+      "Atomicity",
+      "Durability"
+    ],
+    "correct": "Atomicity"
+  },
+  {
+    "question_id": "DBMS6-Q2",
+    "topic": "Serializability",
+    "difficulty": "Medium",
+    "question": "Conflict serializability is tested using:",
+    "options": [
+      "ER Diagram",
+      "Precedence Graph",
+      "Normalization",
+      "Indexing"
+    ],
+    "correct": "Precedence Graph"
+  },
+  {
+    "question_id": "DBMS6-Q3",
+    "topic": "2PL",
+    "difficulty": "Medium",
+    "question": "In 2PL, shrinking phase allows:",
+    "options": [
+      "Acquire locks",
+      "Release locks",
+      "Both acquire and release",
+      "No operation"
+    ],
+    "correct": "Release locks"
+  },
+  {
+    "question_id": "DBMS6-Q4",
+    "topic": "Locks",
+    "difficulty": "Medium",
+    "question": "Exclusive lock allows:",
+    "options": [
+      "Read only",
+      "Write only",
+      "Read and write",
+      "No access"
+    ],
+    "correct": "Read and write"
+  },
+  {
+    "question_id": "DBMS6-Q5",
+    "topic": "Deadlock",
+    "difficulty": "Hard",
+    "question": "Deadlock detection uses:",
+    "options": [
+      "B+ Tree",
+      "Wait-For Graph",
+      "Primary Key",
+      "Normalization"
+    ],
+    "correct": "Wait-For Graph"
+  }
+]

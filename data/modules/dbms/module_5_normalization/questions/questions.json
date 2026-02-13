@@ -1,0 +1,80 @@
+[
+  {
+    "question_id": "DBMS5-Q1",
+    "topic": "Functional Dependency",
+    "difficulty": "Easy",
+    "question": "If X → Y, it means:",
+    "options": [
+      "Y determines X",
+      "X determines Y",
+      "X equals Y",
+      "No dependency"
+    ],
+    "correct": "X determines Y"
+  },
+  {
+    "question_id": "DBMS5-Q2",
+    "topic": "1NF",
+    "difficulty": "Medium",
+    "question": "A table is in 1NF if:",
+    "options": [
+      "It has composite key",
+      "All attributes are atomic",
+      "No foreign key",
+      "It has no primary key"
+    ],
+    "correct": "All attributes are atomic"
+  },
+  {
+    "question_id": "DBMS5-Q3",
+    "topic": "2NF",
+    "difficulty": "Medium",
+    "question": "2NF removes:",
+    "options": [
+      "Transitive dependency",
+      "Partial dependency",
+      "Foreign key",
+      "Primary key"
+    ],
+    "correct": "Partial dependency"
+  },
+  {
+    "question_id": "DBMS5-Q4",
+    "topic": "3NF",
+    "difficulty": "Medium",
+    "question": "3NF removes:",
+    "options": [
+      "Partial dependency",
+      "Transitive dependency",
+      "Primary key",
+      "Atomic values"
+    ],
+    "correct": "Transitive dependency"
+  },
+  {
+    "question_id": "DBMS5-Q5",
+    "topic": "BCNF",
+    "difficulty": "Hard",
+    "question": "BCNF requires that:",
+    "options": [
+      "Every determinant is super key",
+      "Every attribute is prime",
+      "No foreign key exists",
+      "Table has single attribute"
+    ],
+    "correct": "Every determinant is super key"
+  },
+  {
+    "question_id": "DBMS5-Q6",
+    "topic": "Lossless Join",
+    "difficulty": "Hard",
+    "question": "Lossless join ensures:",
+    "options": [
+      "No redundancy",
+      "No data loss after decomposition",
+      "No dependency",
+      "No keys"
+    ],
+    "correct": "No data loss after decomposition"
+  }
+]

@@ -1,0 +1,58 @@
+{
+  "module_id": "DBMS-MOD-03",
+  "subject": "Database Management System",
+  "module_name": "Relational Model",
+  "difficulty": "Medium",
+  "estimated_hours": 10,
+  "units": [
+    {
+      "unit": "3.1",
+      "title": "Relational Concepts",
+      "topics": [
+        "Relation",
+        "Tuple",
+        "Attribute",
+        "Degree and Cardinality",
+        "Properties of Relation"
+      ]
+    },
+    {
+      "unit": "3.2",
+      "title": "Keys and Constraints",
+      "topics": [
+        "Super Key",
+        "Candidate Key",
+        "Primary Key",
+        "Foreign Key",
+        "Integrity Constraints"
+      ]
+    },
+    {
+      "unit": "3.3",
+      "title": "Relational Algebra",
+      "topics": [
+        "Selection",
+        "Projection",
+        "Union",
+        "Set Difference",
+        "Cartesian Product",
+        "Join Operations"
+      ]
+    },
+    {
+      "unit": "3.4",
+      "title": "Relational Calculus",
+      "topics": [
+        "Tuple Relational Calculus",
+        "Domain Relational Calculus",
+        "Procedural vs Non-Procedural"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Explain relational database concepts",
+    "Differentiate types of keys",
+    "Apply relational algebra operations",
+    "Compare relational algebra and calculus"
+  ]
+}

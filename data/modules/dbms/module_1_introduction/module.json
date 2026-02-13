@@ -1,0 +1,44 @@
+{
+  "module_id": "DBMS-MOD-01",
+  "subject": "Database Management System",
+  "module_name": "Introduction to DBMS",
+  "difficulty": "Easy",
+  "estimated_hours": 8,
+  "units": [
+    {
+      "unit": "1.1",
+      "title": "Database Concepts",
+      "topics": [
+        "Data vs Information",
+        "Definition of Database",
+        "Definition of DBMS",
+        "Characteristics of DBMS",
+        "Advantages of DBMS"
+      ]
+    },
+    {
+      "unit": "1.2",
+      "title": "File System vs DBMS",
+      "topics": [
+        "Limitations of File System",
+        "Advantages of DBMS over File System",
+        "Comparison between File System and DBMS"
+      ]
+    },
+    {
+      "unit": "1.3",
+      "title": "Data Models and Architecture",
+      "topics": [
+        "Types of Data Models",
+        "Three-Level Architecture",
+        "Data Independence"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Explain basic database terminology",
+    "Differentiate between file system and DBMS",
+    "Describe three-level architecture",
+    "Explain logical and physical data independence"
+  ]
+}

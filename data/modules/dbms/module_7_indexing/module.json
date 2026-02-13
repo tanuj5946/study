@@ -1,0 +1,54 @@
+{
+  "module_id": "DBMS-MOD-07",
+  "subject": "Database Management System",
+  "module_name": "Indexing and Query Processing",
+  "difficulty": "High",
+  "estimated_hours": 12,
+  "units": [
+    {
+      "unit": "7.1",
+      "title": "File Organization",
+      "topics": [
+        "Heap File",
+        "Sequential File",
+        "Hash File"
+      ]
+    },
+    {
+      "unit": "7.2",
+      "title": "Indexing",
+      "topics": [
+        "Primary Index",
+        "Secondary Index",
+        "Clustered Index",
+        "Dense and Sparse Index"
+      ]
+    },
+    {
+      "unit": "7.3",
+      "title": "B+ Tree",
+      "topics": [
+        "Structure of B+ Tree",
+        "Insertion and Deletion",
+        "Advantages"
+      ]
+    },
+    {
+      "unit": "7.4",
+      "title": "Hashing and Query Processing",
+      "topics": [
+        "Static Hashing",
+        "Dynamic Hashing",
+        "Query Processing",
+        "Query Optimization"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Explain file organization methods",
+    "Differentiate indexing types",
+    "Describe B+ tree structure",
+    "Understand hashing techniques",
+    "Explain query optimization"
+  ]
+}

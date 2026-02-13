@@ -1,0 +1,54 @@
+{
+  "module_id": "DBMS-MOD-04",
+  "subject": "Database Management System",
+  "module_name": "SQL",
+  "difficulty": "Medium",
+  "estimated_hours": 12,
+  "units": [
+    {
+      "unit": "4.1",
+      "title": "SQL Basics and DDL",
+      "topics": [
+        "Introduction to SQL",
+        "CREATE",
+        "ALTER",
+        "DROP"
+      ]
+    },
+    {
+      "unit": "4.2",
+      "title": "DML and Queries",
+      "topics": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "WHERE Clause"
+      ]
+    },
+    {
+      "unit": "4.3",
+      "title": "Advanced Queries",
+      "topics": [
+        "Joins",
+        "Subqueries"
+      ]
+    },
+    {
+      "unit": "4.4",
+      "title": "Aggregate Functions and Views",
+      "topics": [
+        "GROUP BY",
+        "HAVING",
+        "Aggregate Functions",
+        "Views"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Write SQL DDL statements",
+    "Perform CRUD operations",
+    "Use joins and subqueries",
+    "Apply aggregate functions and grouping"
+  ]
+}

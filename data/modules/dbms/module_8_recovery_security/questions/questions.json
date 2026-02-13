@@ -1,0 +1,67 @@
+[
+  {
+    "question_id": "DBMS8-Q1",
+    "topic": "Recovery",
+    "difficulty": "Easy",
+    "question": "Write-Ahead Logging ensures:",
+    "options": [
+      "Data written before log",
+      "Log written before data",
+      "No logging",
+      "Only redo"
+    ],
+    "correct": "Log written before data"
+  },
+  {
+    "question_id": "DBMS8-Q2",
+    "topic": "UNDO REDO",
+    "difficulty": "Medium",
+    "question": "UNDO operation restores:",
+    "options": [
+      "New value",
+      "Old value",
+      "Index",
+      "Primary key"
+    ],
+    "correct": "Old value"
+  },
+  {
+    "question_id": "DBMS8-Q3",
+    "topic": "Checkpoint",
+    "difficulty": "Medium",
+    "question": "Checkpoint is used to:",
+    "options": [
+      "Increase redundancy",
+      "Reduce recovery time",
+      "Delete logs",
+      "Encrypt data"
+    ],
+    "correct": "Reduce recovery time"
+  },
+  {
+    "question_id": "DBMS8-Q4",
+    "topic": "Authentication",
+    "difficulty": "Easy",
+    "question": "Authentication verifies:",
+    "options": [
+      "Access rights",
+      "User identity",
+      "Encryption method",
+      "Query result"
+    ],
+    "correct": "User identity"
+  },
+  {
+    "question_id": "DBMS8-Q5",
+    "topic": "Authorization",
+    "difficulty": "Medium",
+    "question": "GRANT command is used to:",
+    "options": [
+      "Delete table",
+      "Provide privileges",
+      "Rollback transaction",
+      "Encrypt data"
+    ],
+    "correct": "Provide privileges"
+  }
+]

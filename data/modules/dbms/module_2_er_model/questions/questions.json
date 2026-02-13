@@ -1,0 +1,106 @@
+[
+  {
+    "question_id": "DBMS2-Q1",
+    "topic": "Entity",
+    "difficulty": "Easy",
+    "question": "An entity represents:",
+    "options": [
+      "A relationship between tables",
+      "A real-world object",
+      "A database query",
+      "A programming function"
+    ],
+    "correct": "A real-world object"
+  },
+  {
+    "question_id": "DBMS2-Q2",
+    "topic": "Types of Attributes",
+    "difficulty": "Medium",
+    "question": "Which attribute can be derived from other attributes?",
+    "options": [
+      "Simple attribute",
+      "Composite attribute",
+      "Derived attribute",
+      "Multivalued attribute"
+    ],
+    "correct": "Derived attribute"
+  },
+  {
+    "question_id": "DBMS2-Q3",
+    "topic": "Primary Key",
+    "difficulty": "Easy",
+    "question": "A primary key must be:",
+    "options": [
+      "Null",
+      "Unique",
+      "Duplicate",
+      "Optional"
+    ],
+    "correct": "Unique"
+  },
+  {
+    "question_id": "DBMS2-Q4",
+    "topic": "Cardinality Constraints",
+    "difficulty": "Medium",
+    "question": "One-to-many relationship means:",
+    "options": [
+      "One entity related to one entity",
+      "One entity related to multiple entities",
+      "Multiple entities related to one entity",
+      "No relationship"
+    ],
+    "correct": "One entity related to multiple entities"
+  },
+  {
+    "question_id": "DBMS2-Q5",
+    "topic": "Participation Constraint",
+    "difficulty": "Medium",
+    "question": "Total participation means:",
+    "options": [
+      "Entity must participate in relationship",
+      "Entity may participate",
+      "Entity has no attributes",
+      "Entity has multiple keys"
+    ],
+    "correct": "Entity must participate in relationship"
+  },
+  {
+    "question_id": "DBMS2-Q6",
+    "topic": "Weak Entity",
+    "difficulty": "Medium",
+    "question": "A weak entity depends on:",
+    "options": [
+      "Another weak entity",
+      "A strong entity",
+      "Database query",
+      "Index structure"
+    ],
+    "correct": "A strong entity"
+  },
+  {
+    "question_id": "DBMS2-Q7",
+    "topic": "Generalization",
+    "difficulty": "Hard",
+    "question": "Generalization is the process of:",
+    "options": [
+      "Combining lower-level entities into higher-level entity",
+      "Breaking entity into smaller parts",
+      "Deleting relationships",
+      "Adding foreign keys"
+    ],
+    "correct": "Combining lower-level entities into higher-level entity"
+  },
+  {
+    "question_id": "DBMS2-Q8",
+    "topic": "ER to Relational Mapping",
+    "difficulty": "Hard",
+    "question": "When converting ER to relational model, strong entities become:",
+    "options": [
+      "Attributes",
+      "Relations (Tables)",
+      "Queries",
+      "Indexes"
+    ],
+    "correct": "Relations (Tables)"
+  }
+]

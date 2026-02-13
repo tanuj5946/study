@@ -1,0 +1,41 @@
+### Weak Entity and Advanced ER Concepts
+
+Weak Entity
+
+A Weak Entity is an entity that does not have a primary key of its own.
+
+It depends on a Strong Entity for identification.
+
+Example:
+Dependent entity depends on Employee.
+
+Characteristics:
+- Has partial key
+- Connected through identifying relationship
+
+Identifying Relationship
+
+Relationship that connects weak entity to strong entity.
+
+Generalization
+
+Process of combining lower-level entities into higher-level entity.
+
+Example:
+Car and Bike generalized into Vehicle.
+
+Specialization
+
+Process of dividing higher-level entity into lower-level entities.
+
+Example:
+Employee specialized into Manager and Engineer.
+
+Aggregation
+
+Used when relationship itself participates in another relationship.
+
+Exam Notes:
+- Weak entity always has total participation.
+- Generalization = bottom-up approach.
+- Specialization = top-down approach.

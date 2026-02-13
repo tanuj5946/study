@@ -1,0 +1,132 @@
+[
+  {
+    "question_id": "DBMS3-Q1",
+    "topic": "Relation",
+    "difficulty": "Easy",
+    "question": "A table in relational model is called:",
+    "options": [
+      "Tuple",
+      "Relation",
+      "Attribute",
+      "Domain"
+    ],
+    "correct": "Relation"
+  },
+  {
+    "question_id": "DBMS3-Q2",
+    "topic": "Tuple",
+    "difficulty": "Easy",
+    "question": "A row in a relation is called:",
+    "options": [
+      "Attribute",
+      "Tuple",
+      "Domain",
+      "Schema"
+    ],
+    "correct": "Tuple"
+  },
+  {
+    "question_id": "DBMS3-Q3",
+    "topic": "Primary Key",
+    "difficulty": "Medium",
+    "question": "Which key uniquely identifies a tuple?",
+    "options": [
+      "Foreign Key",
+      "Super Key",
+      "Primary Key",
+      "Alternate Key"
+    ],
+    "correct": "Primary Key"
+  },
+  {
+    "question_id": "DBMS3-Q4",
+    "topic": "Foreign Key",
+    "difficulty": "Medium",
+    "question": "A foreign key is used to:",
+    "options": [
+      "Delete table",
+      "Link two relations",
+      "Sort records",
+      "Encrypt data"
+    ],
+    "correct": "Link two relations"
+  },
+  {
+    "question_id": "DBMS3-Q5",
+    "topic": "Integrity Constraints",
+    "difficulty": "Medium",
+    "question": "Entity integrity ensures:",
+    "options": [
+      "Foreign key is NULL",
+      "Primary key is not NULL",
+      "All tuples are equal",
+      "Table has duplicates"
+    ],
+    "correct": "Primary key is not NULL"
+  },
+  {
+    "question_id": "DBMS3-Q6",
+    "topic": "Selection",
+    "difficulty": "Medium",
+    "question": "Selection operation in relational algebra is used to:",
+    "options": [
+      "Select columns",
+      "Select rows",
+      "Join tables",
+      "Rename relation"
+    ],
+    "correct": "Select rows"
+  },
+  {
+    "question_id": "DBMS3-Q7",
+    "topic": "Projection",
+    "difficulty": "Medium",
+    "question": "Projection operation is used to:",
+    "options": [
+      "Select rows",
+      "Select columns",
+      "Delete tuples",
+      "Join relations"
+    ],
+    "correct": "Select columns"
+  },
+  {
+    "question_id": "DBMS3-Q8",
+    "topic": "Join",
+    "difficulty": "Hard",
+    "question": "Which join automatically removes duplicate columns?",
+    "options": [
+      "Theta Join",
+      "Equi Join",
+      "Natural Join",
+      "Outer Join"
+    ],
+    "correct": "Natural Join"
+  },
+  {
+    "question_id": "DBMS3-Q9",
+    "topic": "Relational Algebra",
+    "difficulty": "Hard",
+    "question": "Relational algebra is:",
+    "options": [
+      "Non-procedural language",
+      "Procedural language",
+      "Programming language",
+      "Markup language"
+    ],
+    "correct": "Procedural language"
+  },
+  {
+    "question_id": "DBMS3-Q10",
+    "topic": "Relational Calculus",
+    "difficulty": "Hard",
+    "question": "Relational calculus specifies:",
+    "options": [
+      "How to retrieve data",
+      "What data to retrieve",
+      "Storage format",
+      "Index structure"
+    ],
+    "correct": "What data to retrieve"
+  }
+]
