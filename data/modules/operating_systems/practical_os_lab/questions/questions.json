@@ -1,0 +1,41 @@
+[
+  {
+    "question_id": "LAB-Q1",
+    "topic": "Linux Commands",
+    "difficulty": "Easy",
+    "question": "Which command lists directory contents?",
+    "options": [
+      "pwd",
+      "ls",
+      "cd",
+      "rm"
+    ],
+    "correct": "ls"
+  },
+  {
+    "question_id": "LAB-Q2",
+    "topic": "Process Commands",
+    "difficulty": "Medium",
+    "question": "Which command shows real-time running processes?",
+    "options": [
+      "ps",
+      "kill",
+      "top",
+      "free"
+    ],
+    "correct": "top"
+  },
+  {
+    "question_id": "LAB-Q3",
+    "topic": "System Calls",
+    "difficulty": "Medium",
+    "question": "Which system call creates a new process?",
+    "options": [
+      "exec()",
+      "fork()",
+      "wait()",
+      "open()"
+    ],
+    "correct": "fork()"
+  }
+]

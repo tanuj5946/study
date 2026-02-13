@@ -7,8 +7,6 @@ Types of fragmentation:
 - Internal fragmentation
 - External fragmentation
 
-Paging reduces external fragmentation, while segmentation may cause
-external fragmentation.
+Paging reduces external fragmentation, while segmentation may cause external fragmentation.
 
-Proper memory management techniques are required to reduce
-fragmentation.
+Proper memory management techniques are required to reduce fragmentation.

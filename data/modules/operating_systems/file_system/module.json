@@ -1,0 +1,52 @@
+{
+  "module_id": "OS-MOD-10",
+  "subject": "Operating Systems",
+  "module_name": "File Systems",
+  "difficulty": "Medium",
+  "estimated_hours": 8,
+  "units": [
+    {
+      "unit": "10.1",
+      "title": "File Concepts",
+      "topics": [
+        "File Attributes",
+        "File Operations"
+      ]
+    },
+    {
+      "unit": "10.2",
+      "title": "Directory Structures",
+      "topics": [
+        "Single-Level Directory",
+        "Two-Level Directory",
+        "Tree Structure",
+        "Acyclic Graph"
+      ]
+    },
+    {
+      "unit": "10.3",
+      "title": "Allocation Methods",
+      "topics": [
+        "Contiguous Allocation",
+        "Linked Allocation",
+        "Indexed Allocation"
+      ]
+    },
+    {
+      "unit": "10.4",
+      "title": "Free Space Management",
+      "topics": [
+        "Bit Map",
+        "Linked List",
+        "Counting",
+        "Grouping"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Describe file system design",
+    "Compare file allocation techniques",
+    "Understand directory structures",
+    "Explain free space management methods"
+  ]
+}

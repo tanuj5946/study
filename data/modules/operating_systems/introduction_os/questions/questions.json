@@ -1,0 +1,41 @@
+[
+  {
+    "question_id": "OS1-Q1",
+    "topic": "Definition",
+    "difficulty": "Easy",
+    "question": "An operating system acts as:",
+    "options": [
+      "A compiler",
+      "An intermediary between user and hardware",
+      "A database",
+      "A network cable"
+    ],
+    "correct": "An intermediary between user and hardware"
+  },
+  {
+    "question_id": "OS1-Q2",
+    "topic": "Types of OS",
+    "difficulty": "Medium",
+    "question": "Which OS provides immediate response within time limits?",
+    "options": [
+      "Batch OS",
+      "Time-Sharing OS",
+      "Real-Time OS",
+      "Distributed OS"
+    ],
+    "correct": "Real-Time OS"
+  },
+  {
+    "question_id": "OS1-Q3",
+    "topic": "Resource Management",
+    "difficulty": "Medium",
+    "question": "Which function is related to memory management?",
+    "options": [
+      "Process scheduling",
+      "File deletion",
+      "Virtual memory handling",
+      "Interrupt handling"
+    ],
+    "correct": "Virtual memory handling"
+  }
+]

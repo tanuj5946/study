@@ -1,0 +1,40 @@
+{
+  "module_id": "OS-MOD-12",
+  "subject": "Operating Systems",
+  "module_name": "Protection and Security",
+  "difficulty": "Medium",
+  "estimated_hours": 7,
+  "units": [
+    {
+      "unit": "12.1",
+      "title": "Access Control",
+      "topics": [
+        "Access Matrix",
+        "Access Control Lists",
+        "Capabilities"
+      ]
+    },
+    {
+      "unit": "12.2",
+      "title": "Authentication",
+      "topics": [
+        "Password Authentication",
+        "Multi-factor Authentication"
+      ]
+    },
+    {
+      "unit": "12.3",
+      "title": "OS Security Mechanisms",
+      "topics": [
+        "Protection Domains",
+        "Security Threats",
+        "Malware"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Identify security threats",
+    "Explain OS protection methods",
+    "Understand authentication mechanisms"
+  ]
+}

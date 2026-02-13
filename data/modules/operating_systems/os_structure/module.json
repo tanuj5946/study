@@ -1,0 +1,33 @@
+{
+  "module_id": "OS-MOD-02",
+  "subject": "Operating Systems",
+  "module_name": "Operating System Structure",
+  "difficulty": "Medium",
+  "estimated_hours": 7,
+  "units": [
+    {
+      "unit": "2.1",
+      "title": "OS Design Approaches",
+      "topics": [
+        "Monolithic Kernel",
+        "Microkernel",
+        "Layered Architecture",
+        "Hybrid Kernel"
+      ]
+    },
+    {
+      "unit": "2.2",
+      "title": "Kernel and User Space",
+      "topics": [
+        "User Mode vs Kernel Mode",
+        "System Calls"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Compare OS architectures",
+    "Identify trade-offs between design approaches",
+    "Explain mode switching",
+    "Describe purpose of system calls"
+  ]
+}

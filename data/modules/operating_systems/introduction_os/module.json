@@ -1,0 +1,43 @@
+{
+  "module_id": "OS-MOD-01",
+  "subject": "Operating Systems",
+  "module_name": "Introduction to Operating Systems",
+  "difficulty": "Easy",
+  "estimated_hours": 6,
+  "units": [
+    {
+      "unit": "1.1",
+      "title": "What is an Operating System?",
+      "topics": [
+        "Definition of OS",
+        "Evolution of Operating Systems",
+        "Goals and Functions"
+      ]
+    },
+    {
+      "unit": "1.2",
+      "title": "Types of Operating Systems",
+      "topics": [
+        "Batch OS",
+        "Time-Sharing OS",
+        "Real-Time OS",
+        "Distributed OS",
+        "Embedded OS"
+      ]
+    },
+    {
+      "unit": "1.3",
+      "title": "OS as Resource Manager",
+      "topics": [
+        "CPU, Memory, I/O and Storage Management",
+        "Abstraction Concept"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Explain the role of an operating system",
+    "Identify major functions of an OS",
+    "Differentiate between OS types",
+    "Describe how OS manages resources"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "module_id": "OS-MOD-13",
+  "subject": "Operating Systems",
+  "module_name": "Virtualization and Modern OS",
+  "difficulty": "Medium",
+  "estimated_hours": 7,
+  "units": [
+    {
+      "unit": "13.1",
+      "title": "Virtual Machines",
+      "topics": [
+        "Virtual Machine Concept",
+        "Benefits of Virtualization"
+      ]
+    },
+    {
+      "unit": "13.2",
+      "title": "Hypervisors",
+      "topics": [
+        "Type 1 Hypervisor",
+        "Type 2 Hypervisor"
+      ]
+    },
+    {
+      "unit": "13.3",
+      "title": "Containers",
+      "topics": [
+        "Container Concept",
+        "VM vs Containers"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Explain virtualization concepts",
+    "Compare virtual machines and containers",
+    "Understand hypervisor types"
+  ]
+}

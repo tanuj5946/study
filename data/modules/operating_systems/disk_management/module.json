@@ -1,0 +1,40 @@
+{
+  "module_id": "OS-MOD-11",
+  "subject": "Operating Systems",
+  "module_name": "I/O Systems and Disk Management",
+  "difficulty": "High",
+  "estimated_hours": 9,
+  "units": [
+    {
+      "unit": "11.1",
+      "title": "I/O Hardware and Software",
+      "topics": [
+        "I/O Hardware",
+        "I/O Software"
+      ]
+    },
+    {
+      "unit": "11.2",
+      "title": "Interrupts and DMA",
+      "topics": [
+        "Interrupts",
+        "Direct Memory Access (DMA)"
+      ]
+    },
+    {
+      "unit": "11.3",
+      "title": "Disk Scheduling",
+      "topics": [
+        "FCFS",
+        "SSTF",
+        "SCAN",
+        "C-SCAN"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Explain I/O processing",
+    "Solve disk scheduling problems",
+    "Compare disk scheduling algorithms"
+  ]
+}

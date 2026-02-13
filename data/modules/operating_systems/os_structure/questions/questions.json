@@ -1,0 +1,41 @@
+[
+  {
+    "question_id": "OS2-Q1",
+    "topic": "OS Design",
+    "difficulty": "Easy",
+    "question": "Which kernel design runs most services in kernel space?",
+    "options": [
+      "Microkernel",
+      "Monolithic Kernel",
+      "Layered Architecture",
+      "Hybrid Kernel"
+    ],
+    "correct": "Monolithic Kernel"
+  },
+  {
+    "question_id": "OS2-Q2",
+    "topic": "Kernel and User Space",
+    "difficulty": "Medium",
+    "question": "System calls are used to:",
+    "options": [
+      "Switch CPU",
+      "Access OS services",
+      "Delete hardware",
+      "Compile programs"
+    ],
+    "correct": "Access OS services"
+  },
+  {
+    "question_id": "OS2-Q3",
+    "topic": "Modes",
+    "difficulty": "Medium",
+    "question": "Mode switching occurs when:",
+    "options": [
+      "CPU shuts down",
+      "System call is invoked",
+      "Memory is full",
+      "Disk fails"
+    ],
+    "correct": "System call is invoked"
+  }
+]

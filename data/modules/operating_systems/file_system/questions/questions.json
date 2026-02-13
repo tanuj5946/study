@@ -1,0 +1,67 @@
+[
+  {
+    "question_id": "FS-Q1",
+    "topic": "File Concepts",
+    "difficulty": "Easy",
+    "question": "Which of the following is a file attribute?",
+    "options": [
+      "Process ID",
+      "File size",
+      "CPU register",
+      "Thread state"
+    ],
+    "correct": "File size"
+  },
+  {
+    "question_id": "FS-Q2",
+    "topic": "Directory Structures",
+    "difficulty": "Easy",
+    "question": "Which directory structure allows hierarchical organization?",
+    "options": [
+      "Single-Level",
+      "Two-Level",
+      "Tree-Structured",
+      "Flat Structure"
+    ],
+    "correct": "Tree-Structured"
+  },
+  {
+    "question_id": "FS-Q3",
+    "topic": "Allocation Methods",
+    "difficulty": "Medium",
+    "question": "Which allocation method avoids external fragmentation?",
+    "options": [
+      "Contiguous Allocation",
+      "Linked Allocation",
+      "Sequential Allocation",
+      "Fixed Allocation"
+    ],
+    "correct": "Linked Allocation"
+  },
+  {
+    "question_id": "FS-Q4",
+    "topic": "Allocation Methods",
+    "difficulty": "Medium",
+    "question": "Which allocation method supports direct access efficiently?",
+    "options": [
+      "Contiguous Allocation",
+      "Linked Allocation",
+      "Indexed Allocation",
+      "Sequential Allocation"
+    ],
+    "correct": "Indexed Allocation"
+  },
+  {
+    "question_id": "FS-Q5",
+    "topic": "Free Space Management",
+    "difficulty": "Medium",
+    "question": "In free space management, which method uses one bit per disk block?",
+    "options": [
+      "Linked List",
+      "Bit Map",
+      "Counting",
+      "Grouping"
+    ],
+    "correct": "Bit Map"
+  }
+]

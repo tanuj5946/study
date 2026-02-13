@@ -1,0 +1,41 @@
+[
+  {
+    "question_id": "VMO-Q1",
+    "topic": "Virtual Machines",
+    "difficulty": "Easy",
+    "question": "What does a virtual machine emulate?",
+    "options": [
+      "A network",
+      "A physical computer",
+      "A database",
+      "A compiler"
+    ],
+    "correct": "A physical computer"
+  },
+  {
+    "question_id": "VMO-Q2",
+    "topic": "Hypervisors",
+    "difficulty": "Medium",
+    "question": "Which hypervisor runs directly on hardware?",
+    "options": [
+      "Type 2",
+      "Hosted",
+      "Type 1",
+      "Container"
+    ],
+    "correct": "Type 1"
+  },
+  {
+    "question_id": "VMO-Q3",
+    "topic": "Containers",
+    "difficulty": "Medium",
+    "question": "Containers share which component with the host?",
+    "options": [
+      "Full OS",
+      "Kernel",
+      "Disk controller",
+      "BIOS"
+    ],
+    "correct": "Kernel"
+  }
+]

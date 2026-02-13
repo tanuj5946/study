@@ -1,0 +1,39 @@
+{
+  "module_id": "OS-MOD-09",
+  "subject": "Operating Systems",
+  "module_name": "Virtual Memory",
+  "difficulty": "High",
+  "estimated_hours": 9,
+  "units": [
+    {
+      "unit": "9.1",
+      "title": "Demand Paging",
+      "topics": [
+        "Virtual Memory Concept",
+        "Demand Paging"
+      ]
+    },
+    {
+      "unit": "9.2",
+      "title": "Page Replacement Algorithms",
+      "topics": [
+        "FIFO",
+        "LRU",
+        "Optimal",
+        "Clock"
+      ]
+    },
+    {
+      "unit": "9.3",
+      "title": "Thrashing",
+      "topics": [
+        "Thrashing"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Analyze page faults",
+    "Apply page replacement algorithms",
+    "Understand thrashing in memory systems"
+  ]
+}

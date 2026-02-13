@@ -1,0 +1,54 @@
+[
+  {
+    "question_id": "IO-Q1",
+    "topic": "Interrupts",
+    "difficulty": "Easy",
+    "question": "What is the purpose of interrupts?",
+    "options": [
+      "Schedule CPU",
+      "Notify CPU of I/O completion",
+      "Allocate memory",
+      "Manage files"
+    ],
+    "correct": "Notify CPU of I/O completion"
+  },
+  {
+    "question_id": "IO-Q2",
+    "topic": "DMA",
+    "difficulty": "Medium",
+    "question": "DMA reduces which overhead?",
+    "options": [
+      "Disk space",
+      "CPU involvement",
+      "Memory size",
+      "Cache usage"
+    ],
+    "correct": "CPU involvement"
+  },
+  {
+    "question_id": "IO-Q3",
+    "topic": "Disk Scheduling",
+    "difficulty": "Medium",
+    "question": "Which algorithm may cause starvation?",
+    "options": [
+      "FCFS",
+      "SSTF",
+      "SCAN",
+      "C-SCAN"
+    ],
+    "correct": "SSTF"
+  },
+  {
+    "question_id": "IO-Q4",
+    "topic": "Disk Scheduling",
+    "difficulty": "Medium",
+    "question": "SCAN algorithm is also known as:",
+    "options": [
+      "Circular algorithm",
+      "Elevator algorithm",
+      "Priority algorithm",
+      "Optimal algorithm"
+    ],
+    "correct": "Elevator algorithm"
+  }
+]

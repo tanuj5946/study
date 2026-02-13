@@ -1,0 +1,54 @@
+[
+  {
+    "question_id": "VM-Q1",
+    "topic": "Demand Paging",
+    "difficulty": "Easy",
+    "question": "What happens when a page is not present in memory?",
+    "options": [
+      "CPU crash",
+      "Page fault",
+      "Deadlock",
+      "Context switch"
+    ],
+    "correct": "Page fault"
+  },
+  {
+    "question_id": "VM-Q2",
+    "topic": "FIFO",
+    "difficulty": "Medium",
+    "question": "FIFO may suffer from:",
+    "options": [
+      "Starvation",
+      "Belady's anomaly",
+      "Deadlock",
+      "Priority inversion"
+    ],
+    "correct": "Belady's anomaly"
+  },
+  {
+    "question_id": "VM-Q3",
+    "topic": "LRU",
+    "difficulty": "Medium",
+    "question": "LRU replaces which page?",
+    "options": [
+      "Most recently used",
+      "Least recently used",
+      "Oldest page",
+      "Random page"
+    ],
+    "correct": "Least recently used"
+  },
+  {
+    "question_id": "VM-Q4",
+    "topic": "Thrashing",
+    "difficulty": "Medium",
+    "question": "Thrashing results in:",
+    "options": [
+      "High CPU utilization",
+      "Low page faults",
+      "Low CPU utilization",
+      "No memory usage"
+    ],
+    "correct": "Low CPU utilization"
+  }
+]

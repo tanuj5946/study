@@ -1,0 +1,47 @@
+{
+  "module_id": "OS-MOD-14",
+  "subject": "Operating Systems",
+  "module_name": "Practical Operating Systems (Lab Module)",
+  "difficulty": "Medium",
+  "estimated_hours": 8,
+  "units": [
+    {
+      "unit": "14.1",
+      "title": "Linux Basics",
+      "topics": [
+        "Basic Linux Commands",
+        "File and Directory Commands"
+      ]
+    },
+    {
+      "unit": "14.2",
+      "title": "Process and Memory Commands",
+      "topics": [
+        "Process Management Commands",
+        "Memory Monitoring Commands"
+      ]
+    },
+    {
+      "unit": "14.3",
+      "title": "System Calls",
+      "topics": [
+        "Common System Calls",
+        "Fork and Exec"
+      ]
+    },
+    {
+      "unit": "14.4",
+      "title": "Shell Scripting",
+      "topics": [
+        "Basic Shell Script Structure",
+        "Conditional Statements and Loops"
+      ]
+    }
+  ],
+  "learning_outcomes": [
+    "Use OS commands effectively",
+    "Write simple programs interacting with OS",
+    "Understand basic system calls",
+    "Develop simple shell scripts"
+  ]
+}

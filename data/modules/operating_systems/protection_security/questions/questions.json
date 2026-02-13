@@ -1,0 +1,41 @@
+[
+  {
+    "question_id": "PSec-Q1",
+    "topic": "Access Control",
+    "difficulty": "Easy",
+    "question": "What does an Access Control List define?",
+    "options": [
+      "CPU scheduling order",
+      "Disk partitions",
+      "User permissions on objects",
+      "Memory allocation"
+    ],
+    "correct": "User permissions on objects"
+  },
+  {
+    "question_id": "PSec-Q2",
+    "topic": "Authentication",
+    "difficulty": "Medium",
+    "question": "Multi-factor authentication combines:",
+    "options": [
+      "Multiple CPUs",
+      "Two or more authentication factors",
+      "Different operating systems",
+      "Multiple disks"
+    ],
+    "correct": "Two or more authentication factors"
+  },
+  {
+    "question_id": "PSec-Q3",
+    "topic": "Security Threats",
+    "difficulty": "Medium",
+    "question": "Which of the following is a type of malware?",
+    "options": [
+      "Firewall",
+      "Virus",
+      "Encryption",
+      "Access matrix"
+    ],
+    "correct": "Virus"
+  }
+]
