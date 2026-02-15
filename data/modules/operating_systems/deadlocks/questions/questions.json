@@ -1,132 +1,122 @@
 [
   {
-    "question_id": "Q101",
-    "module_id": "OS-MOD-03",
+    "topic": "Deadlocks",
     "difficulty": "Easy",
     "question": "Which of the following is NOT a necessary condition for deadlock?",
-    "options": [
-      "Mutual Exclusion",
-      "Hold and Wait",
-      "Preemption",
-      "Circular Wait"
-    ],
-    "correct_answer": "Preemption"
+    "options": {
+      "A": "Mutual Exclusion",
+      "B": "Hold and Wait",
+      "C": "Preemption",
+      "D": "Circular Wait"
+    },
+    "correct": "C"
   },
   {
-    "question_id": "Q102",
-    "module_id": "OS-MOD-03",
+    "topic": "Deadlocks",
     "difficulty": "Medium",
     "question": "Which algorithm is used for deadlock avoidance?",
-    "options": [
-      "Round Robin",
-      "FCFS",
-      "Banker's Algorithm",
-      "Priority Scheduling"
-    ],
-    "correct_answer": "Banker's Algorithm"
+    "options": {
+      "A": "Round Robin",
+      "B": "FCFS",
+      "C": "Banker's Algorithm",
+      "D": "Priority Scheduling"
+    },
+    "correct": "C"
   },
   {
-    "question_id": "Q103",
-    "module_id": "OS-MOD-03",
+    "topic": "Deadlocks",
     "difficulty": "Hard",
     "question": "Deadlock prevention works by:",
-    "options": [
-      "Detecting cycles",
-      "Breaking necessary conditions",
-      "Killing processes",
-      "Avoiding resource allocation"
-    ],
-    "correct_answer": "Breaking necessary conditions"
+    "options": {
+      "A": "Detecting cycles",
+      "B": "Breaking necessary conditions",
+      "C": "Killing processes",
+      "D": "Avoiding resource allocation"
+    },
+    "correct": "B"
   },
   {
-    "question_id": "Q104",
-    "module_id": "OS-MOD-03",
+    "topic": "Deadlocks",
     "difficulty": "Easy",
     "question": "Which of the following is a necessary condition for deadlock?",
-    "options": [
-      "Spooling",
-      "Mutual Exclusion",
-      "Timesharing",
-      "Priority Inheritance"
-    ],
-    "correct_answer": "Mutual Exclusion"
+    "options": {
+      "A": "Spooling",
+      "B": "Mutual Exclusion",
+      "C": "Timesharing",
+      "D": "Priority Inheritance"
+    },
+    "correct": "B"
   },
   {
-    "question_id": "Q105",
-    "module_id": "OS-MOD-03",
+    "topic": "Deadlocks",
     "difficulty": "Medium",
     "question": "In a resource-allocation graph, a deadlock exists if:",
-    "options": [
-      "There is at least one cycle in the graph",
-      "There are no cycles in the graph",
-      "All resources are preemptible",
-      "The system is in a safe state"
-    ],
-    "correct_answer": "There is at least one cycle in the graph"
+    "options": {
+      "A": "There is at least one cycle in the graph",
+      "B": "There are no cycles in the graph",
+      "C": "All resources are preemptible",
+      "D": "The system is in a safe state"
+    },
+    "correct": "A"
   },
   {
-    "question_id": "Q106",
-    "module_id": "OS-MOD-03",
+    "topic": "Deadlocks",
     "difficulty": "Medium",
     "question": "The Banker's algorithm requires the system to know:",
-    "options": [
-      "Exact CPU burst times",
-      "Maximum resource needs of each process",
-      "Process priorities only",
-      "Current CPU utilization"
-    ],
-    "correct_answer": "Maximum resource needs of each process"
+    "options": {
+      "A": "Exact CPU burst times",
+      "B": "Maximum resource needs of each process",
+      "C": "Process priorities only",
+      "D": "Current CPU utilization"
+    },
+    "correct": "B"
   },
   {
-    "question_id": "Q107",
-    "module_id": "OS-MOD-03",
+    "topic": "Deadlocks",
     "difficulty": "Hard",
     "question": "Which strategy is used for deadlock recovery?",
-    "options": [
-      "Prevent circular wait",
-      "Resource preemption and rollback",
-      "Avoid unsafe states",
-      "Disallow hold and wait"
-    ],
-    "correct_answer": "Resource preemption and rollback"
+    "options": {
+      "A": "Prevent circular wait",
+      "B": "Resource preemption and rollback",
+      "C": "Avoid unsafe states",
+      "D": "Disallow hold and wait"
+    },
+    "correct": "B"
   },
   {
-    "question_id": "Q108",
-    "module_id": "OS-MOD-03",
+    "topic": "Deadlocks",
     "difficulty": "Medium",
     "question": "A system is in a safe state if:",
-    "options": [
-      "There is no deadlock currently",
-      "There exists at least one safe sequence",
-      "All resources are preemptible",
-      "CPU utilization is below 50%"
-    ],
-    "correct_answer": "There exists at least one safe sequence"
+    "options": {
+      "A": "There is no deadlock currently",
+      "B": "There exists at least one safe sequence",
+      "C": "All resources are preemptible",
+      "D": "CPU utilization is below 50%"
+    },
+    "correct": "B"
   },
   {
-    "question_id": "Q109",
-    "module_id": "OS-MOD-03",
+    "topic": "Deadlocks",
     "difficulty": "Easy",
     "question": "Which condition can be eliminated by requiring processes to request all resources at once?",
-    "options": [
-      "Circular Wait",
-      "Hold and Wait",
-      "Mutual Exclusion",
-      "No Preemption"
-    ],
-    "correct_answer": "Hold and Wait"
+    "options": {
+      "A": "Circular Wait",
+      "B": "Hold and Wait",
+      "C": "Mutual Exclusion",
+      "D": "No Preemption"
+    },
+    "correct": "B"
   },
   {
-    "question_id": "Q110",
-    "module_id": "OS-MOD-03",
+    "topic": "Deadlocks",
     "difficulty": "Hard",
     "question": "In deadlock detection for multiple instances of each resource type, the algorithm is similar to:",
-    "options": [
-      "SJF scheduling",
-      "Banker's safety algorithm",
-      "LRU page replacement",
-      "Two-phase locking"
-    ],
-    "correct_answer": "Banker's safety algorithm"
+    "options": {
+      "A": "SJF scheduling",
+      "B": "Banker's safety algorithm",
+      "C": "LRU page replacement",
+      "D": "Two-phase locking"
+    },
+    "correct": "B"
   }
 ]
