@@ -33,7 +33,7 @@ const TestPage = () => {
     }));
 
     const data = await submitTest({
-      user_id: 1,
+      user_id: 3,
       module_id: Number(moduleId),
       answers: formattedAnswers
     });

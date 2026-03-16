@@ -65,7 +65,7 @@ exports.submitAssessment = async (req, res) => {
     const questionIds = answers.map(a => a.question_id);
 
     const correctQuery = `
-      SELECT id, topic, correct_answer
+      SELECT id, topic, correct_option_index
       FROM questions
       WHERE id = ANY($1)
     `;
@@ -77,24 +77,34 @@ exports.submitAssessment = async (req, res) => {
     const detailedAnswers = [];
 
     for (const userAnswer of answers) {
-      const correctData = correctRows.find(
-        q => q.id === userAnswer.question_id
-      );
 
-      if (!correctData) continue;
+  const correctData = correctRows.find(
+    q => q.id === userAnswer.question_id
+  );
 
-      const isCorrect =
-        correctData.correct_answer === userAnswer.selected_answer;
+  if (!correctData) continue;
 
-      if (isCorrect) score++;
+  const selectedIndex = parseInt(userAnswer.selected_answer);
 
-      detailedAnswers.push({
-        question_id: userAnswer.question_id,
-        topic: correctData.topic,
-        selected_answer: userAnswer.selected_answer,
-        is_correct: isCorrect
-      });
-    }
+  const isCorrect =
+    selectedIndex === correctData.correct_option_index;
+
+  if (isCorrect) score++;
+
+  console.log("---- Answer Check ----");
+  console.log("Question ID:", userAnswer.question_id);
+  console.log("Correct Index:", correctData.correct_option_index);
+  console.log("User Index:", selectedIndex);
+  console.log("Result:", isCorrect);
+
+  detailedAnswers.push({
+    question_id: userAnswer.question_id,
+    topic: correctData.topic,
+    selected_answer: selectedIndex,
+    is_correct: isCorrect
+  });
+
+}
 
     const totalQuestions = answers.length;
     const percentage = (score / totalQuestions) * 100;
