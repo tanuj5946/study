@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,93 +6,54 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { User, Palette, Bell, Shield, LogOut, Save, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { updateProfile, changePassword, deleteAccount } from "@/lib/api";
 
 export function SettingsContent() {
   const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const [displayName, setDisplayName] = useState("");
-  const [bio, setBio] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(true);
-  const [deleteConfirm, setDeleteConfirm] = useState("");
-  const [deleting, setDeleting] = useState(false);
+  const [displayName, setDisplayName] = useState(user?.name ?? "");
+  const [saving, setSaving]           = useState(false);
 
-  // Appearance
-  const [theme, setTheme] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return document.documentElement.classList.contains("dark") ? "dark" : "light";
-    }
-    return "light";
-  });
+  // password change
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw]         = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [changingPw, setChangingPw] = useState(false);
 
-  // Notifications
+  // appearance
+  const [theme, setTheme] = useState<string>(() =>
+    typeof window !== "undefined" && document.documentElement.classList.contains("dark") ? "dark" : "light"
+  );
+
+  // notifications (local state only — no DB for these yet)
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [studyReminders, setStudyReminders] = useState(true);
-  const [weeklyDigest, setWeeklyDigest] = useState(false);
-  const [progressAlerts, setProgressAlerts] = useState(true);
+  const [studyReminders, setStudyReminders]         = useState(true);
+  const [weeklyDigest, setWeeklyDigest]             = useState(false);
+  const [progressAlerts, setProgressAlerts]         = useState(true);
 
-  // Fetch profile
+  // delete account
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting]           = useState(false);
+
   useEffect(() => {
-    if (!user) return;
-    const fetchProfile = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("display_name, bio")
-        .eq("id", user.id)
-        .single();
-      if (data) {
-        setDisplayName(data.display_name || "");
-        setBio(data.bio || "");
-      }
-      setLoadingProfile(false);
-    };
-    fetchProfile();
+    if (user?.name) setDisplayName(user.name);
   }, [user]);
 
   const handleThemeChange = (value: string) => {
     setTheme(value);
-    if (value === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    document.documentElement.classList.toggle("dark", value === "dark");
     toast({ title: "Theme updated", description: `Switched to ${value} mode.` });
   };
 
   const handleSaveProfile = async () => {
-    if (!user) return;
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ display_name: displayName, bio })
-        .eq("id", user.id);
-      if (error) throw error;
-      // Also update auth metadata for display_name
-      await supabase.auth.updateUser({ data: { display_name: displayName } });
-      toast({ title: "Profile saved", description: "Your profile has been updated." });
+      await updateProfile(displayName);
+      toast({ title: "Profile saved" });
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
@@ -101,16 +61,24 @@ export function SettingsContent() {
     }
   };
 
-  const handleResetPassword = async () => {
-    if (!user?.email) return;
+  const handleChangePassword = async () => {
+    if (newPw !== confirmPw) {
+      toast({ title: "New passwords don't match", variant: "destructive" });
+      return;
+    }
+    if (newPw.length < 6) {
+      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    setChangingPw(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-      toast({ title: "Email sent", description: "Check your inbox for a password reset link." });
+      await changePassword(currentPw, newPw);
+      toast({ title: "Password changed successfully" });
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setChangingPw(false);
     }
   };
 
@@ -118,20 +86,17 @@ export function SettingsContent() {
     if (deleteConfirm !== "DELETE") return;
     setDeleting(true);
     try {
-      const { error } = await supabase.rpc("delete_user_account");
-      if (error) throw error;
-      await signOut();
-      navigate("/");
+      await deleteAccount();
+      signOut();
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
       setDeleting(false);
     }
   };
 
-  const initials = (() => {
-    if (displayName) return displayName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    return (user?.email || "").slice(0, 2).toUpperCase();
-  })();
+  const initials = displayName
+    ? displayName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
+    : (user?.email ?? "").slice(0, 2).toUpperCase();
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -142,18 +107,10 @@ export function SettingsContent() {
 
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className="grid w-full grid-cols-4 bg-secondary">
-          <TabsTrigger value="profile" className="gap-2 text-xs sm:text-sm">
-            <User size={14} /> Profile
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="gap-2 text-xs sm:text-sm">
-            <Palette size={14} /> Appearance
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2 text-xs sm:text-sm">
-            <Bell size={14} /> Notifications
-          </TabsTrigger>
-          <TabsTrigger value="account" className="gap-2 text-xs sm:text-sm">
-            <Shield size={14} /> Account
-          </TabsTrigger>
+          <TabsTrigger value="profile"       className="gap-2 text-xs sm:text-sm"><User size={14} /> Profile</TabsTrigger>
+          <TabsTrigger value="appearance"    className="gap-2 text-xs sm:text-sm"><Palette size={14} /> Appearance</TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2 text-xs sm:text-sm"><Bell size={14} /> Notifications</TabsTrigger>
+          <TabsTrigger value="account"       className="gap-2 text-xs sm:text-sm"><Shield size={14} /> Account</TabsTrigger>
         </TabsList>
 
         {/* Profile */}
@@ -161,7 +118,7 @@ export function SettingsContent() {
           <div className="rounded-lg border border-border bg-card p-6 space-y-5">
             <div className="flex items-center gap-4">
               <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center text-xl font-bold text-primary-foreground">
-                {loadingProfile ? "…" : initials}
+                {initials}
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Profile Information</h2>
@@ -171,32 +128,16 @@ export function SettingsContent() {
             <Separator />
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" value={user?.email || ""} disabled className="bg-secondary text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
+                <Label>Email</Label>
+                <Input value={user?.email || ""} disabled className="bg-secondary text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Email cannot be changed.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="displayName">Display Name</Label>
-                <Input
-                  id="displayName"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="e.g. Alex Johnson"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea
-                  id="bio"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="e.g. Computer Science student at MIT, focused on algorithms and distributed systems."
-                  rows={3}
-                />
+                <Input id="displayName" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="e.g. Alex Johnson" />
               </div>
               <Button onClick={handleSaveProfile} disabled={saving} className="gap-2">
-                <Save size={14} />
-                {saving ? "Saving..." : "Save Changes"}
+                <Save size={14} />{saving ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </div>
@@ -207,20 +148,15 @@ export function SettingsContent() {
           <div className="rounded-lg border border-border bg-card p-6 space-y-5">
             <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
             <Separator />
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Theme</Label>
-                <Select value={theme} onValueChange={handleThemeChange}>
-                  <SelectTrigger className="w-full max-w-xs">
-                    <SelectValue placeholder="Select theme" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Choose between light and dark mode.</p>
-              </div>
+            <div className="space-y-2">
+              <Label>Theme</Label>
+              <Select value={theme} onValueChange={handleThemeChange}>
+                <SelectTrigger className="w-full max-w-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">Light</SelectItem>
+                  <SelectItem value="dark">Dark</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </TabsContent>
@@ -231,114 +167,91 @@ export function SettingsContent() {
             <h2 className="text-lg font-semibold text-foreground">Notification Preferences</h2>
             <Separator />
             <div className="space-y-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Email Notifications</p>
-                  <p className="text-xs text-muted-foreground">Receive updates via email</p>
+              {[
+                { label: "Email Notifications",  sub: "Receive updates via email",                    val: emailNotifications, set: setEmailNotifications },
+                { label: "Study Reminders",       sub: "Get reminded about your study schedule",       val: studyReminders,     set: setStudyReminders },
+                { label: "Weekly Digest",         sub: "Receive a weekly summary of your progress",    val: weeklyDigest,       set: setWeeklyDigest },
+                { label: "Progress Alerts",       sub: "Get notified when you reach milestones",       val: progressAlerts,     set: setProgressAlerts },
+              ].map((item, i, arr) => (
+                <div key={item.label}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.sub}</p>
+                    </div>
+                    <Switch checked={item.val} onCheckedChange={item.set} />
+                  </div>
+                  {i < arr.length - 1 && <Separator className="mt-4" />}
                 </div>
-                <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Study Reminders</p>
-                  <p className="text-xs text-muted-foreground">Get reminded about your study schedule</p>
-                </div>
-                <Switch checked={studyReminders} onCheckedChange={setStudyReminders} />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Weekly Digest</p>
-                  <p className="text-xs text-muted-foreground">Receive a weekly summary of your progress</p>
-                </div>
-                <Switch checked={weeklyDigest} onCheckedChange={setWeeklyDigest} />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Progress Alerts</p>
-                  <p className="text-xs text-muted-foreground">Get notified when you reach milestones</p>
-                </div>
-                <Switch checked={progressAlerts} onCheckedChange={setProgressAlerts} />
-              </div>
+              ))}
             </div>
           </div>
         </TabsContent>
 
         {/* Account */}
         <TabsContent value="account" className="mt-6 space-y-6">
+
+          {/* Change password */}
           <div className="rounded-lg border border-border bg-card p-6 space-y-5">
-            <h2 className="text-lg font-semibold text-foreground">Security</h2>
+            <h2 className="text-lg font-semibold text-foreground">Change Password</h2>
             <Separator />
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Reset your password via email. You'll receive a link to set a new password.
-              </p>
-              <Button variant="outline" onClick={handleResetPassword} className="gap-2">
-                <Shield size={14} />
-                Reset Password
+            <div className="space-y-3 max-w-sm">
+              <div className="space-y-2">
+                <Label>Current password</Label>
+                <Input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>New password</Label>
+                <Input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Confirm new password</Label>
+                <Input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} />
+              </div>
+              <Button onClick={handleChangePassword} disabled={changingPw} className="gap-2">
+                <Shield size={14} />{changingPw ? "Saving..." : "Change Password"}
               </Button>
             </div>
           </div>
 
+          {/* Sign out */}
           <div className="rounded-lg border border-border bg-card p-6 space-y-5">
             <h2 className="text-lg font-semibold text-foreground">Session</h2>
             <Separator />
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Sign out of your current session on this device.
-              </p>
-              <Button variant="destructive" onClick={() => signOut()} className="gap-2">
-                <LogOut size={14} />
-                Sign Out
-              </Button>
-            </div>
+            <p className="text-sm text-muted-foreground">Sign out of your current session on this device.</p>
+            <Button variant="destructive" onClick={() => signOut()} className="gap-2">
+              <LogOut size={14} /> Sign Out
+            </Button>
           </div>
 
+          {/* Delete account */}
           <div className="rounded-lg border border-destructive/30 bg-card p-6 space-y-5">
             <h2 className="text-lg font-semibold text-destructive">Danger Zone</h2>
             <Separator className="bg-destructive/20" />
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Permanently delete your account and all associated data. This action cannot be undone.
-              </p>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="gap-2">
-                    <Trash2 size={14} />
-                    Delete Account
+            <p className="text-sm text-muted-foreground">Permanently delete your account and all data. This cannot be undone.</p>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="gap-2"><Trash2 size={14} />Delete Account</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete your account, sessions, progress, and all data.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2 py-2">
+                  <Label>Type <span className="font-mono font-bold">DELETE</span> to confirm</Label>
+                  <Input value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)} placeholder="DELETE" />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setDeleteConfirm("")}>Cancel</AlertDialogCancel>
+                  <Button variant="destructive" disabled={deleteConfirm !== "DELETE" || deleting} onClick={handleDeleteAccount}>
+                    {deleting ? "Deleting..." : "Delete My Account"}
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete your account, study sessions, progress, and all associated data. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <div className="space-y-2 py-2">
-                    <Label htmlFor="deleteConfirm">Type <span className="font-mono font-bold">DELETE</span> to confirm</Label>
-                    <Input
-                      id="deleteConfirm"
-                      value={deleteConfirm}
-                      onChange={(e) => setDeleteConfirm(e.target.value)}
-                      placeholder="DELETE"
-                    />
-                  </div>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setDeleteConfirm("")}>Cancel</AlertDialogCancel>
-                    <Button
-                      variant="destructive"
-                      disabled={deleteConfirm !== "DELETE" || deleting}
-                      onClick={handleDeleteAccount}
-                    >
-                      {deleting ? "Deleting..." : "Delete My Account"}
-                    </Button>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </TabsContent>
       </Tabs>

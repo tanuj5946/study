@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import {
   BookOpen, Clock, ChevronRight, CheckCircle2, Circle, Loader2,
   ArrowLeft, FileText, StickyNote, BarChart3, Lock,
@@ -6,39 +7,33 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import {
-  subjectList, subjects, topics,
-  getTopicsForSubject, getTopicById, isTopicUnlocked,
-  formatMinutes,
-  type Subject, type TopicDetail, type Status, type Difficulty,
-} from "@/data/studyData";
+import { getSubjects, getModules, getNotes, type Subject, type Module, type Note } from "@/lib/api";
 
-/* ── Status helpers ─────────────────────────────────────── */
+/* ── Types ──────────────────────────────────────────────── */
 
-const statusIcon = (s: Status) => {
-  switch (s) {
-    case "Completed": return <CheckCircle2 size={16} className="text-primary shrink-0" />;
-    case "In Progress": return <Loader2 size={16} className="text-accent-foreground shrink-0" />;
-    case "Not Started": return <Circle size={16} className="text-muted-foreground shrink-0" />;
-  }
-};
+type Difficulty = "Easy" | "Medium" | "Hard";
 
-const statusPill = (s: Status) => {
-  const base = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full";
-  switch (s) {
-    case "Completed": return `${base} bg-primary/10 text-primary`;
-    case "In Progress": return `${base} bg-accent text-accent-foreground`;
-    case "Not Started": return `${base} bg-secondary text-muted-foreground`;
-  }
-};
+/* ── Helpers ────────────────────────────────────────────── */
 
 const diffVariant = (d: Difficulty): "secondary" | "default" | "destructive" => {
   switch (d) {
-    case "Easy": return "secondary";
+    case "Easy":   return "secondary";
     case "Medium": return "default";
-    case "Hard": return "destructive";
+    case "Hard":   return "destructive";
   }
 };
+
+const formatHours = (h: number) => h === 1 ? "1h" : `${h}h`;
+
+/* ── Loading spinner ────────────────────────────────────── */
+
+function Spinner() {
+  return (
+    <div className="flex items-center justify-center py-20">
+      <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 /* ── Breadcrumb ─────────────────────────────────────────── */
 
@@ -61,20 +56,29 @@ function Breadcrumb({ items }: { items: { label: string; onClick?: () => void }[
   );
 }
 
-/* ── Level 1: Subjects List (was Modules) ───────────────── */
+/* ── Level 1: Subjects List ─────────────────────────────── */
 
-function SubjectsList({ onSelect }: { onSelect: (id: string) => void }) {
+function SubjectsList({ onSelect }: { onSelect: (subject: Subject) => void }) {
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading]   = useState(true);
+
+  useEffect(() => {
+    getSubjects().then(setSubjects).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Spinner />;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Subjects</h1>
-        <p className="text-sm text-muted-foreground">Select a subject to view its topics.</p>
+        <p className="text-sm text-muted-foreground">Select a subject to view its modules.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        {subjectList.map((sub) => (
+        {subjects.map((sub) => (
           <button
             key={sub.id}
-            onClick={() => onSelect(sub.id)}
+            onClick={() => onSelect(sub)}
             className="w-full text-left rounded-xl border border-border bg-card p-5 shadow-card hover:border-primary/30 hover:shadow-md transition-all group"
           >
             <div className="flex items-start justify-between mb-3">
@@ -83,20 +87,16 @@ function SubjectsList({ onSelect }: { onSelect: (id: string) => void }) {
                   <BookOpen size={18} className="text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{sub.title}</h3>
+                  <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                    {sub.name}
+                  </h3>
                   <p className="text-xs text-muted-foreground line-clamp-1">{sub.description}</p>
                 </div>
               </div>
               <ChevronRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors mt-1" />
             </div>
-            <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-              <span>{sub.topicIds.length} topics</span>
-              <span className="flex items-center gap-1"><Clock size={12} /> {formatMinutes(sub.estimatedMinutes)}</span>
-              <span className={statusPill(sub.status)}>{sub.status}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Progress value={sub.progress} className="h-1.5 flex-1" />
-              <span className="text-xs font-medium text-foreground">{sub.progress}%</span>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span>{sub.modules?.length ?? 0} modules</span>
             </div>
           </button>
         ))}
@@ -105,177 +105,196 @@ function SubjectsList({ onSelect }: { onSelect: (id: string) => void }) {
   );
 }
 
-/* ── Level 2: Topics List (with sequential locking) ─────── */
+/* ── Level 2: Modules List ──────────────────────────────── */
 
-function TopicsList({ subjectId, onSelect, onBack }: {
-  subjectId: string; onSelect: (id: string) => void; onBack: () => void;
+function ModulesList({ subject, onSelect, onBack }: {
+  subject: Subject;
+  onSelect: (module: Module) => void;
+  onBack: () => void;
 }) {
-  const sub = subjects[subjectId]!;
-  const topicList = getTopicsForSubject(subjectId);
+  const [modules, setModules] = useState<Module[]>(subject.modules ?? []);
+  const [loading, setLoading] = useState(!subject.modules?.length);
+
+  useEffect(() => {
+    if (!subject.modules?.length) {
+      getModules(subject.id).then(setModules).finally(() => setLoading(false));
+    }
+  }, [subject.id]);
+
+  if (loading) return <Spinner />;
 
   return (
     <div className="space-y-6">
-      <Breadcrumb
-        items={[
-          { label: "Subjects", onClick: onBack },
-          { label: sub.title },
-        ]}
-      />
+      <Breadcrumb items={[
+        { label: "Subjects", onClick: onBack },
+        { label: subject.name },
+      ]} />
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground">
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{sub.title}</h1>
-          <p className="text-sm text-muted-foreground">{topicList.length} topics · {formatMinutes(sub.estimatedMinutes)} total · {sub.progress}% complete</p>
+          <h1 className="text-2xl font-bold text-foreground">{subject.name}</h1>
+          <p className="text-sm text-muted-foreground">{modules.length} modules</p>
         </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
-        {topicList.map((topic, i) => {
-          const unlocked = isTopicUnlocked(subjectId, topic.id);
-          return (
-            <button
-              key={topic.id}
-              onClick={() => unlocked && onSelect(topic.id)}
-              disabled={!unlocked}
-              className={`w-full text-left flex items-center gap-4 px-5 py-4 transition-colors group ${
-                i < topicList.length - 1 ? "border-b border-border" : ""
-              } ${unlocked ? "hover:bg-secondary/20" : "opacity-50 cursor-not-allowed"}`}
-            >
-              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-bold text-muted-foreground shrink-0">
-                {i + 1}
-              </div>
-              <div className="mt-0.5 shrink-0">
-                {unlocked ? statusIcon(topic.status) : <Lock size={16} className="text-muted-foreground" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-sm font-medium transition-colors ${unlocked ? "text-foreground group-hover:text-primary" : "text-muted-foreground"}`}>
-                    {topic.title}
-                  </span>
-                  <Badge variant={diffVariant(topic.difficulty)} className="text-[10px] px-2 py-0">
-                    {topic.difficulty}
-                  </Badge>
-                  {!unlocked && (
-                    <span className="text-[10px] text-muted-foreground italic">Complete previous topic to unlock</span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{topic.description}</p>
-              </div>
-              <div className="flex items-center gap-4 shrink-0">
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock size={12} /> {formatMinutes(topic.estimatedMinutes)}
+        {modules.map((mod, i) => (
+          <button
+            key={mod.id}
+            onClick={() => onSelect(mod)}
+            className={`w-full text-left flex items-center gap-4 px-5 py-4 transition-colors group hover:bg-secondary/20
+              ${i < modules.length - 1 ? "border-b border-border" : ""}`}
+          >
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-bold text-muted-foreground shrink-0">
+              {i + 1}
+            </div>
+            <div className="mt-0.5 shrink-0">
+              <Circle size={16} className="text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                  {mod.module_name}
                 </span>
-                {unlocked && (
-                  <div className="flex items-center gap-2 w-20">
-                    <Progress value={topic.progress} className="h-1 flex-1" />
-                    <span className="text-[10px] text-muted-foreground w-7 text-right">{topic.progress}%</span>
-                  </div>
-                )}
-                <ChevronRight size={14} className={unlocked ? "text-muted-foreground group-hover:text-primary transition-colors" : "text-muted-foreground/40"} />
+                <Badge variant={diffVariant(mod.difficulty as Difficulty)} className="text-[10px] px-2 py-0">
+                  {mod.difficulty}
+                </Badge>
               </div>
-            </button>
-          );
-        })}
+            </div>
+            <div className="flex items-center gap-4 shrink-0">
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock size={12} /> {formatHours(mod.estimated_hours)}
+              </span>
+              <ChevronRight size={14} className="text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+          </button>
+        ))}
       </div>
     </div>
   );
 }
 
-/* ── Topic Detail View ──────────────────────────────────── */
+/* ── Notes panel ────────────────────────────────────────── */
 
-function TopicDetailView({ topicId, onBack, onBackToSubjects }: {
-  topicId: string; onBack: () => void; onBackToSubjects: () => void;
-}) {
-  const topic = getTopicById(topicId)!;
-  const sub = subjects[topic.subjectId]!;
+function NotesPanel({ moduleId }: { moduleId: number }) {
+  const [notes, setNotes]       = useState<Note[]>([]);
+  const [selected, setSelected] = useState<Note | null>(null);
+  const [loading, setLoading]   = useState(true);
+
+  useEffect(() => {
+    getNotes(moduleId)
+      .then(data => {
+        setNotes(data);
+        if (data.length) setSelected(data[0]);
+      })
+      .finally(() => setLoading(false));
+  }, [moduleId]);
+
+  if (loading) return <Spinner />;
+
+  if (!notes.length) return (
+    <p className="text-sm text-muted-foreground">No notes available for this module.</p>
+  );
 
   return (
+    <div className="flex gap-4">
+      {/* sidebar */}
+      {notes.length > 1 && (
+        <div className="w-40 shrink-0 space-y-1">
+          {notes.map(n => (
+            <button
+              key={n.id}
+              onClick={() => setSelected(n)}
+              className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors flex items-center gap-2
+                ${selected?.id === n.id
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-secondary"}`}
+            >
+              <StickyNote size={12} className="shrink-0" />
+              <span className="line-clamp-2">{n.title}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* content */}
+      {selected && (
+        <div className="flex-1 min-w-0">
+          {notes.length > 1 && (
+            <h4 className="text-sm font-semibold text-foreground mb-3">{selected.title}</h4>
+          )}
+          <div className="prose prose-sm max-w-none dark:prose-invert
+            prose-headings:font-semibold prose-headings:text-foreground
+            prose-p:text-muted-foreground prose-p:leading-relaxed
+            prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded
+            prose-pre:bg-secondary prose-pre:border prose-pre:border-border
+            prose-strong:text-foreground prose-a:text-primary prose-li:text-muted-foreground">
+            <ReactMarkdown>{selected.content}</ReactMarkdown>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Level 3: Module Detail ─────────────────────────────── */
+
+function ModuleDetail({ module, subject, onBack, onBackToSubjects }: {
+  module: Module;
+  subject: Subject;
+  onBack: () => void;
+  onBackToSubjects: () => void;
+}) {
+  return (
     <div className="space-y-6">
-      <Breadcrumb
-        items={[
-          { label: "Subjects", onClick: onBackToSubjects },
-          { label: sub.title, onClick: onBack },
-          { label: topic.title },
-        ]}
-      />
+      <Breadcrumb items={[
+        { label: "Subjects",    onClick: onBackToSubjects },
+        { label: subject.name,  onClick: onBack },
+        { label: module.module_name },
+      ]} />
+
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground">
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold text-foreground">{topic.title}</h1>
-            <Badge variant={diffVariant(topic.difficulty)}>{topic.difficulty}</Badge>
-            <span className={statusPill(topic.status)}>{topic.status}</span>
+            <h1 className="text-2xl font-bold text-foreground">{module.module_name}</h1>
+            <Badge variant={diffVariant(module.difficulty as Difficulty)}>{module.difficulty}</Badge>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">{sub.title}</p>
+          <p className="text-sm text-muted-foreground mt-1">{subject.name}</p>
         </div>
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {[
-          { icon: BarChart3, label: "Progress", value: `${topic.progress}%` },
-          { icon: Clock, label: "Est. Time", value: formatMinutes(topic.estimatedMinutes) },
-          { icon: FileText, label: "Difficulty", value: topic.difficulty },
-          { icon: Clock, label: "Last Updated", value: topic.lastUpdated },
+          { icon: FileText,  label: "Difficulty",  value: module.difficulty },
+          { icon: Clock,     label: "Est. Time",   value: formatHours(module.estimated_hours) },
+          { icon: BarChart3, label: "Module ID",   value: `#${module.id}` },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-border bg-card p-4 shadow-card">
             <div className="flex items-center gap-2 mb-1">
               <stat.icon size={14} className="text-muted-foreground" />
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{stat.label}</span>
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                {stat.label}
+              </span>
             </div>
             <div className="text-lg font-bold text-foreground">{stat.value}</div>
           </div>
         ))}
       </div>
 
-      {/* Progress bar */}
+      {/* Notes from DB — rendered as markdown */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-        <h3 className="text-sm font-semibold text-foreground mb-3">Completion</h3>
-        <div className="flex items-center gap-4">
-          <Progress value={topic.progress} className="h-2 flex-1" />
-          <span className="text-sm font-semibold text-foreground">{topic.progress}%</span>
+        <div className="flex items-center gap-2 mb-4">
+          <StickyNote size={16} className="text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Notes</h3>
         </div>
+        <NotesPanel moduleId={module.id} />
       </div>
-
-      {/* Description */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-        <h3 className="text-sm font-semibold text-foreground mb-2">Description</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">{topic.description}</p>
-      </div>
-
-      {/* Notes */}
-      {topic.notes && (
-        <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-          <div className="flex items-center gap-2 mb-2">
-            <StickyNote size={16} className="text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">Notes</h3>
-            <span className="text-[10px] text-muted-foreground ml-auto">(local)</span>
-          </div>
-          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{topic.notes}</p>
-        </div>
-      )}
-
-      {/* Resources */}
-      {topic.resources.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-          <div className="flex items-center gap-2 mb-3">
-            <LinkIcon size={16} className="text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">Resources</h3>
-          </div>
-          <div className="space-y-2">
-            {topic.resources.map((res, i) => (
-              <a key={i} href={res.url} className="flex items-center gap-2 text-sm text-primary hover:underline">
-                <ChevronRight size={12} />
-                {res.label}
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -284,28 +303,33 @@ function TopicDetailView({ topicId, onBack, onBackToSubjects }: {
 
 type View =
   | { level: "subjects" }
-  | { level: "topics"; subjectId: string }
-  | { level: "detail"; subjectId: string; topicId: string };
+  | { level: "modules";  subject: Subject }
+  | { level: "detail";   subject: Subject; module: Module };
 
 export function ModulesContent() {
   const [view, setView] = useState<View>({ level: "subjects" });
 
   switch (view.level) {
     case "subjects":
-      return <SubjectsList onSelect={(id) => setView({ level: "topics", subjectId: id })} />;
-    case "topics":
       return (
-        <TopicsList
-          subjectId={view.subjectId}
-          onSelect={(id) => setView({ level: "detail", subjectId: view.subjectId, topicId: id })}
+        <SubjectsList
+          onSelect={(subject) => setView({ level: "modules", subject })}
+        />
+      );
+    case "modules":
+      return (
+        <ModulesList
+          subject={view.subject}
+          onSelect={(module) => setView({ level: "detail", subject: view.subject, module })}
           onBack={() => setView({ level: "subjects" })}
         />
       );
     case "detail":
       return (
-        <TopicDetailView
-          topicId={view.topicId}
-          onBack={() => setView({ level: "topics", subjectId: view.subjectId })}
+        <ModuleDetail
+          module={view.module}
+          subject={view.subject}
+          onBack={() => setView({ level: "modules", subject: view.subject })}
           onBackToSubjects={() => setView({ level: "subjects" })}
         />
       );
