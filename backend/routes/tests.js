@@ -103,4 +103,67 @@ router.get('/recommendations', verifyToken, async (req, res) => {
   }
 });
 
+// GET /api/tests/subject/:subjectId?difficulty=easy|medium|hard|mixed&limit=10
+router.get('/subject/:subjectId', verifyToken, async (req, res) => {
+  try {
+    const subjectId  = parseInt(req.params.subjectId);
+    const difficulty = (req.query.difficulty || 'mixed').toLowerCase();
+    const limit      = parseInt(req.query.limit) || 10;
+
+    // first verify subject exists
+    const { rows: subjectCheck } = await db.query(
+      'SELECT id FROM subjects WHERE id = $1', [subjectId]
+    );
+    if (!subjectCheck.length) {
+      return res.status(404).json({ error: 'Subject not found' });
+    }
+
+    // get all module ids for this subject first
+    const { rows: modules } = await db.query(
+      'SELECT id FROM modules WHERE subject_id = $1', [subjectId]
+    );
+
+    if (!modules.length) {
+      return res.status(404).json({ error: 'No modules found for this subject' });
+    }
+
+    const moduleIds = modules.map(m => m.id);
+
+    let rows;
+
+    if (difficulty === 'mixed') {
+      const { rows: result } = await db.query(`
+        SELECT id, topic, difficulty, question, options, correct_answer
+        FROM questions
+        WHERE module_id = ANY($1)
+        ORDER BY RANDOM()
+        LIMIT $2
+      `, [moduleIds, limit]);
+      rows = result;
+    } else {
+      const { rows: result } = await db.query(`
+        SELECT id, topic, difficulty, question, options, correct_answer
+        FROM questions
+        WHERE module_id = ANY($1)
+          AND LOWER(difficulty) = $2
+        ORDER BY RANDOM()
+        LIMIT $3
+      `, [moduleIds, difficulty, limit]);
+      rows = result;
+    }
+
+    if (!rows.length) {
+      return res.status(404).json({ 
+        error: `No ${difficulty === 'mixed' ? '' : difficulty + ' '}questions found for this subject` 
+      });
+    }
+
+    res.json(rows);
+  } catch (err) {
+    console.error('Subject test error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 module.exports = router;

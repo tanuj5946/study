@@ -6,6 +6,7 @@ const verifyToken = require('../middleware/auth');
 router.get('/', verifyToken, async (req, res) => {
   try {
     const { from, to } = req.query;
+    // console.log('GET /planner - user:', req.user.id, 'from:', from, 'to:', to);
     const { rows } = await db.query(`
       SELECT * FROM study_sessions
       WHERE user_id = $1
@@ -13,6 +14,7 @@ router.get('/', verifyToken, async (req, res) => {
         AND date <= $3
       ORDER BY date ASC, start_time ASC
     `, [req.user.id, from, to]);
+    //  console.log('Found sessions:', rows.length);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });

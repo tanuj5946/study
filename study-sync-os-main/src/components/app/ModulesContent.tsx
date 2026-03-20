@@ -1,4 +1,8 @@
 import { useState, useEffect } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { MiniTest } from "@/components/app/MiniTest";
+import { getUnlocks } from "@/lib/api";
+import { AlertTriangle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import {
   BookOpen, Clock, ChevronRight, CheckCircle2, Circle, Loader2,
@@ -106,20 +110,50 @@ function SubjectsList({ onSelect }: { onSelect: (subject: Subject) => void }) {
 }
 
 /* ── Level 2: Modules List ──────────────────────────────── */
-
 function ModulesList({ subject, onSelect, onBack }: {
   subject: Subject;
   onSelect: (module: Module) => void;
   onBack: () => void;
 }) {
-  const [modules, setModules] = useState<Module[]>(subject.modules ?? []);
-  const [loading, setLoading] = useState(!subject.modules?.length);
+  const [modules, setModules]           = useState<Module[]>(subject.modules ?? []);
+  const [loading, setLoading]           = useState(!subject.modules?.length);
+  const [unlockedIds, setUnlockedIds]   = useState<number[]>([]);
+  const [flaggedIds, setFlaggedIds]     = useState<number[]>([]);
+  const [miniTestModule, setMiniTestModule] = useState<Module | null>(null);
 
   useEffect(() => {
     if (!subject.modules?.length) {
       getModules(subject.id).then(setModules).finally(() => setLoading(false));
     }
+    // fetch unlock status
+    getUnlocks().then(({ unlocked_ids, flagged_ids }) => {
+      setUnlockedIds(unlocked_ids);
+      setFlaggedIds(flagged_ids);
+    });
   }, [subject.id]);
+
+  const isUnlocked = (mod: Module, idx: number) => {
+    if (idx === 0) return true; // first module always unlocked
+    return unlockedIds.includes(mod.id);
+  };
+
+  const isFlagged = (mod: Module) => flaggedIds.includes(mod.id);
+
+  const handleModuleClick = (mod: Module, idx: number) => {
+    if (isUnlocked(mod, idx)) {
+      onSelect(mod);
+    } else {
+      setMiniTestModule(mod);
+    }
+  };
+
+  const handleUnlocked = () => {
+    // refresh unlocks after mini test
+    getUnlocks().then(({ unlocked_ids, flagged_ids }) => {
+      setUnlockedIds(unlocked_ids);
+      setFlaggedIds(flagged_ids);
+    });
+  };
 
   if (loading) return <Spinner />;
 
@@ -140,38 +174,67 @@ function ModulesList({ subject, onSelect, onBack }: {
       </div>
 
       <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
-        {modules.map((mod, i) => (
-          <button
-            key={mod.id}
-            onClick={() => onSelect(mod)}
-            className={`w-full text-left flex items-center gap-4 px-5 py-4 transition-colors group hover:bg-secondary/20
-              ${i < modules.length - 1 ? "border-b border-border" : ""}`}
-          >
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-bold text-muted-foreground shrink-0">
-              {i + 1}
-            </div>
-            <div className="mt-0.5 shrink-0">
-              <Circle size={16} className="text-muted-foreground" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                  {mod.module_name}
-                </span>
-                <Badge variant={diffVariant(mod.difficulty as Difficulty)} className="text-[10px] px-2 py-0">
-                  {mod.difficulty}
-                </Badge>
+        {modules.map((mod, i) => {
+          const unlocked = isUnlocked(mod, i);
+          const flagged  = isFlagged(mod);
+          return (
+            <button
+              key={mod.id}
+              onClick={() => handleModuleClick(mod, i)}
+              className={`w-full text-left flex items-center gap-4 px-5 py-4 transition-colors group
+                ${i < modules.length - 1 ? "border-b border-border" : ""}
+                ${unlocked ? "hover:bg-secondary/20" : "opacity-60 hover:bg-secondary/10"}`}
+            >
+              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-bold text-muted-foreground shrink-0">
+                {i + 1}
               </div>
-            </div>
-            <div className="flex items-center gap-4 shrink-0">
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock size={12} /> {formatHours(mod.estimated_hours)}
-              </span>
-              <ChevronRight size={14} className="text-muted-foreground group-hover:text-primary transition-colors" />
-            </div>
-          </button>
-        ))}
+              <div className="mt-0.5 shrink-0">
+                {unlocked
+                  ? <Circle size={16} className="text-muted-foreground" />
+                  : <Lock size={16} className="text-muted-foreground" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-sm font-medium transition-colors ${unlocked ? "text-foreground group-hover:text-primary" : "text-muted-foreground"}`}>
+                    {mod.module_name}
+                  </span>
+                  <Badge variant={diffVariant(mod.difficulty as Difficulty)} className="text-[10px] px-2 py-0">
+                    {mod.difficulty}
+                  </Badge>
+                  {flagged && (
+                    <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                      <AlertTriangle size={10} /> needs review
+                    </span>
+                  )}
+                  {!unlocked && (
+                    <span className="text-[10px] text-muted-foreground italic">mini test required</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-4 shrink-0">
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock size={12} /> {formatHours(mod.estimated_hours)}
+                </span>
+                <ChevronRight size={14} className={unlocked ? "text-muted-foreground group-hover:text-primary transition-colors" : "text-muted-foreground/40"} />
+              </div>
+            </button>
+          );
+        })}
       </div>
+
+      {/* Mini test dialog */}
+      <Dialog open={!!miniTestModule} onOpenChange={(o) => !o && setMiniTestModule(null)}>
+        <DialogContent className="max-w-xl">
+          {miniTestModule && (
+            <MiniTest
+              moduleId={miniTestModule.id}
+              moduleName={miniTestModule.module_name}
+              onUnlocked={handleUnlocked}
+              onClose={() => setMiniTestModule(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

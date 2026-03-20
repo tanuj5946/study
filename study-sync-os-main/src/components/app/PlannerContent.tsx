@@ -48,9 +48,10 @@ export function PlannerContent() {
   const monthEnd   = format(endOfMonth(month),   "yyyy-MM-dd");
 
   const { data: sessions = [], isLoading } = useQuery({
+    
     queryKey: ["study-sessions", monthStart, monthEnd],
     queryFn: () => getSessions(monthStart, monthEnd),
-    enabled: !!user,
+    // enabled: !!user,
   });
 
   const { data: subjects = [] } = useQuery({
@@ -61,7 +62,7 @@ export function PlannerContent() {
   const createMutation = useMutation({
     mutationFn: (data: SessionPayload) => createSession(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["study-sessions"] });
+      queryClient.refetchQueries({ queryKey: ["study-sessions"] });
       toast({ title: "Session created" });
       closeDialog();
     },
@@ -71,14 +72,14 @@ export function PlannerContent() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<SessionPayload & { completed: boolean }> }) =>
       updateSession(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["study-sessions"] }),
+    onSuccess: () => queryClient.refetchQueries({ queryKey: ["study-sessions"] }),
     onError: () => toast({ title: "Failed to update session", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteSession(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["study-sessions"] });
+      queryClient.refetchQueries({ queryKey: ["study-sessions"] });
       toast({ title: "Session deleted" });
       closeDialog();
     },
@@ -136,19 +137,30 @@ export function PlannerContent() {
     updateMutation.mutate({ id: session.id, data: { completed: !session.completed } });
 
   const daySessions = useMemo(
-    () => sessions.filter(s => isSameDay(new Date(s.date + "T00:00:00"), selectedDate)),
-    [sessions, selectedDate]
-  );
+  () => sessions.filter(s => {
+    const d = s.date ?? s.session_date?.split('T')[0];
+    if (!d) return false;
+    return isSameDay(new Date(d + "T00:00:00"), selectedDate);
+  }),
+  [sessions, selectedDate]
+);
 
-  const upcoming = useMemo(
-    () => sessions.filter(s => !s.completed && isAfter(new Date(s.date + "T00:00:00"), new Date())).slice(0, 5),
-    [sessions]
-  );
+const datesWithSessions = useMemo(
+  () => sessions
+    .map(s => s.date ?? s.session_date?.split('T')[0])
+    .filter(Boolean)
+    .map(d => new Date(d + "T00:00:00")),
+  [sessions]
+);
 
-  const datesWithSessions = useMemo(
-    () => sessions.map(s => new Date(s.date + "T00:00:00")),
-    [sessions]
-  );
+const upcoming = useMemo(
+  () => sessions.filter(s => {
+    const d = s.date ?? s.session_date?.split('T')[0];
+    if (!d || s.completed) return false;
+    return isAfter(new Date(d + "T00:00:00"), new Date());
+  }).slice(0, 5),
+  [sessions]
+);
 
   const formatTime = (t: string | null) => {
     if (!t) return null;
@@ -198,13 +210,19 @@ export function PlannerContent() {
               <CardContent className="space-y-2">
                 {upcoming.map(s => (
                   <button key={s.id}
-                    onClick={() => { const d = new Date(s.date + "T00:00:00"); setSelectedDate(d); setMonth(d); }}
+                  onClick={() => {
+  const dateStr = s.date ?? s.session_date?.split('T')[0];
+  if (!dateStr) return;
+  const d = new Date(dateStr + "T00:00:00");
+  setSelectedDate(d);
+  setMonth(d);
+}}
                     className="w-full text-left flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-secondary transition-colors"
                   >
                     <CalendarDays size={14} className="text-muted-foreground shrink-0" />
                     <span className="truncate flex-1">{s.title}</span>
                     <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {format(new Date(s.date + "T00:00:00"), "MMM d")}
+                      {format(new Date((s.date ?? s.session_date?.split('T')[0]) + "T00:00:00"), "MMM d")}
                     </span>
                   </button>
                 ))}
@@ -331,4 +349,5 @@ export function PlannerContent() {
       </Dialog>
     </div>
   );
+
 }

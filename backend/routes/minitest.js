@@ -10,7 +10,7 @@ const MAX_ATTEMPTS  = 3;
 router.get('/:moduleId/questions', verifyToken, async (req, res) => {
   try {
     const { rows } = await db.query(`
-      SELECT id, question, options, topic
+      SELECT id, question, correct_answer,options, topic
       FROM questions
       WHERE module_id = $1
       ORDER BY RANDOM()

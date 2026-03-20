@@ -159,6 +159,7 @@ export interface StudySession {
   title: string;
   description: string;
   date: string;
+  session_date: string;  
   start_time: string | null;
   duration_minutes: number;
   module_id: number | null;
@@ -206,3 +207,8 @@ export interface MiniTestResult {
   attempts_used: number;
   attempts_left: number;
 }
+export const getSubjectQuestions = (
+  subjectId: number,
+  difficulty: 'easy' | 'medium' | 'hard' | 'mixed',
+  limit: number = 10
+) => request<Question[]>(`/api/tests/subject/${subjectId}?difficulty=${difficulty}&limit=${limit}`);

@@ -44,13 +44,14 @@ export function MiniTest({ moduleId, moduleName, onUnlocked, onClose }: MiniTest
   };
 
   const handleConfirm = () => {
-    if (selected === null) return;
-    setAnswers(prev => [...prev, {
-      question_id:     questions[current].id,
-      selected_answer: questions[current].options[selected],
-    }]);
-    setConfirmed(true);
+  if (selected === null) return;
+  const newAnswer = {
+    question_id:     questions[current].id,
+    selected_answer: questions[current].options[selected],
   };
+  setAnswers(prev => [...prev, newAnswer]);
+  setConfirmed(true);
+};
 
   const handleNext = async () => {
     if (current < questions.length - 1) {
@@ -140,28 +141,32 @@ export function MiniTest({ moduleId, moduleName, onUnlocked, onClose }: MiniTest
           <p className="text-sm font-semibold text-foreground mb-4">{q.question}</p>
           <div className="space-y-2">
             {q.options.map((opt, idx) => {
-              const isCorrect = confirmed && opt === q.correct_answer;
-              const isWrong   = confirmed && idx === selected && opt !== q.correct_answer;
-              return (
-                <button
-                  key={idx}
-                  onClick={() => !confirmed && setSelected(idx)}
-                  disabled={confirmed}
-                  className={`w-full text-left flex items-center gap-3 rounded-lg border px-4 py-3 transition-all text-sm
-                    ${isCorrect ? "border-primary bg-primary/10"
-                    : isWrong   ? "border-destructive bg-destructive/10"
-                    : idx === selected ? "border-primary bg-primary/5"
-                    : "border-border bg-card hover:bg-secondary/30"}`}
-                >
-                  <span className="h-6 w-6 rounded-full border border-border bg-muted flex items-center justify-center text-xs font-bold shrink-0">
-                    {String.fromCharCode(65 + idx)}
-                  </span>
-                  <span className="flex-1">{opt}</span>
-                  {isCorrect && <CheckCircle2 size={16} className="text-primary shrink-0" />}
-                  {isWrong   && <XCircle      size={16} className="text-destructive shrink-0" />}
-                </button>
-              );
-            })}
+  const currentAnswer  = answers[current]; // already confirmed answer for this question
+  const wasSelected    = currentAnswer?.selected_answer === opt;
+  const isCorrect      = opt === q.correct_answer;
+  const showCorrect    = confirmed && isCorrect;
+  const showWrong      = confirmed && wasSelected && !isCorrect;
+
+  return (
+    <button
+      key={idx}
+      onClick={() => !confirmed && setSelected(idx)}
+      disabled={confirmed}
+      className={`w-full text-left flex items-center gap-3 rounded-lg border px-4 py-3 transition-all text-sm
+        ${showCorrect ? "border-primary bg-primary/10"
+        : showWrong   ? "border-destructive bg-destructive/10"
+        : idx === selected && !confirmed ? "border-primary bg-primary/5"
+        : "border-border bg-card hover:bg-secondary/30"}`}
+    >
+      <span className="h-6 w-6 rounded-full border border-border bg-muted flex items-center justify-center text-xs font-bold shrink-0">
+        {String.fromCharCode(65 + idx)}
+      </span>
+      <span className="flex-1">{opt}</span>
+      {showCorrect && <CheckCircle2 size={16} className="text-primary shrink-0" />}
+      {showWrong   && <XCircle      size={16} className="text-destructive shrink-0" />}
+    </button>
+  );
+})}
           </div>
         </div>
 
