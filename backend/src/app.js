@@ -11,6 +11,8 @@ const profileRoutes = require("../routes/profile");
 const miniTestRoutes = require("../routes/minitest");
 const authRoutes       = require("../routes/auth");
 const analyticsRoutes = require("../routes/analytics");
+const recommendationRoutes = require("../routes/recommendations");
+
 
 const app = express();
 
@@ -21,6 +23,7 @@ app.use(cors({
 app.use(express.json());
 
 app.use("/api/admin", adminRoutes);
+app.use("/api/recommendations", recommendationRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/auth",       authRoutes);
 app.use("/api/assessment", assessmentRoutes);

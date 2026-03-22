@@ -9,7 +9,7 @@ import { TestsContent } from "@/components/app/TestsContent";
 import { ProtectedRoute } from "@/components/app/ProtectedRoute";
 import { AdminContent } from "@/components/app/AdminContent";
 import { AnalyticsContent } from "@/components/app/AnalyticsContent";
-
+import { RecommendationsContent } from "@/components/app/RecommendationsContent";
 
 
 
@@ -24,6 +24,7 @@ const AppDashboard = () => {
     if (location.pathname === "/app/tests") return <TestsContent />;
     if (location.pathname === "/app/settings") return <SettingsContent />;
     if (location.pathname === "/app/analytics") return <AnalyticsContent />;
+    if (location.pathname === "/app/recommendations") return <RecommendationsContent />;
     return <DashboardContent />;
   };
 

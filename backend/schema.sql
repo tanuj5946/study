@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict E9t4poVZ8PjLY9lqHzfKsSub6h9LK576oBer7gZTFZRHCMhbbK0j1y6eSEe2vIt
+\restrict bTsGRaJbIXh6hEJSPjCkctMUUSI8gMtrhfM9Lg0IeJUFGPX3agz2KSjMWD4LwwQ
 
 -- Dumped from database version 18.2
 -- Dumped by pg_dump version 18.2
@@ -18,6 +18,22 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: postgres
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+ALTER SCHEMA public OWNER TO postgres;
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: postgres
+--
+
+COMMENT ON SCHEMA public IS '';
+
 
 SET default_tablespace = '';
 
@@ -97,6 +113,82 @@ ALTER SEQUENCE public.assessments_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE public.assessments_id_seq OWNED BY public.assessments.id;
+
+
+--
+-- Name: mini_test_attempts; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.mini_test_attempts (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    module_id integer NOT NULL,
+    score integer NOT NULL,
+    total integer NOT NULL,
+    passed boolean NOT NULL,
+    flagged boolean DEFAULT false,
+    attempted_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.mini_test_attempts OWNER TO postgres;
+
+--
+-- Name: mini_test_attempts_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.mini_test_attempts_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.mini_test_attempts_id_seq OWNER TO postgres;
+
+--
+-- Name: mini_test_attempts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.mini_test_attempts_id_seq OWNED BY public.mini_test_attempts.id;
+
+
+--
+-- Name: module_unlocks; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.module_unlocks (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    module_id integer NOT NULL,
+    unlocked_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.module_unlocks OWNER TO postgres;
+
+--
+-- Name: module_unlocks_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.module_unlocks_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.module_unlocks_id_seq OWNER TO postgres;
+
+--
+-- Name: module_unlocks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.module_unlocks_id_seq OWNED BY public.module_unlocks.id;
 
 
 --
@@ -187,7 +279,8 @@ CREATE TABLE public.questions (
     options jsonb NOT NULL,
     correct_answer text NOT NULL,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT questions_difficulty_check CHECK (((difficulty)::text = ANY ((ARRAY['Easy'::character varying, 'Medium'::character varying, 'Hard'::character varying])::text[])))
+    correct_option_index integer,
+    CONSTRAINT questions_difficulty_check CHECK (((difficulty)::text = ANY (ARRAY[('Easy'::character varying)::text, ('Medium'::character varying)::text, ('Hard'::character varying)::text])))
 );
 
 
@@ -224,7 +317,12 @@ CREATE TABLE public.study_sessions (
     user_id integer,
     module_id integer,
     duration_minutes integer,
-    session_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    session_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    title character varying(200),
+    description text,
+    date date,
+    start_time time without time zone,
+    completed boolean DEFAULT false
 );
 
 
@@ -354,6 +452,20 @@ ALTER TABLE ONLY public.assessments ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
+-- Name: mini_test_attempts id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mini_test_attempts ALTER COLUMN id SET DEFAULT nextval('public.mini_test_attempts_id_seq'::regclass);
+
+
+--
+-- Name: module_unlocks id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.module_unlocks ALTER COLUMN id SET DEFAULT nextval('public.module_unlocks_id_seq'::regclass);
+
+
+--
 -- Name: modules id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -409,6 +521,30 @@ ALTER TABLE ONLY public.assessment_answers
 
 ALTER TABLE ONLY public.assessments
     ADD CONSTRAINT assessments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mini_test_attempts mini_test_attempts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mini_test_attempts
+    ADD CONSTRAINT mini_test_attempts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: module_unlocks module_unlocks_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.module_unlocks
+    ADD CONSTRAINT module_unlocks_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: module_unlocks module_unlocks_user_id_module_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.module_unlocks
+    ADD CONSTRAINT module_unlocks_user_id_module_id_key UNIQUE (user_id, module_id);
 
 
 --
@@ -544,6 +680,38 @@ ALTER TABLE ONLY public.assessments
 
 
 --
+-- Name: mini_test_attempts mini_test_attempts_module_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mini_test_attempts
+    ADD CONSTRAINT mini_test_attempts_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.modules(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mini_test_attempts mini_test_attempts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mini_test_attempts
+    ADD CONSTRAINT mini_test_attempts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: module_unlocks module_unlocks_module_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.module_unlocks
+    ADD CONSTRAINT module_unlocks_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.modules(id) ON DELETE CASCADE;
+
+
+--
+-- Name: module_unlocks module_unlocks_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.module_unlocks
+    ADD CONSTRAINT module_unlocks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: modules modules_subject_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -592,8 +760,15 @@ ALTER TABLE ONLY public.topic_mastery
 
 
 --
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE USAGE ON SCHEMA public FROM PUBLIC;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict E9t4poVZ8PjLY9lqHzfKsSub6h9LK576oBer7gZTFZRHCMhbbK0j1y6eSEe2vIt
+\unrestrict bTsGRaJbIXh6hEJSPjCkctMUUSI8gMtrhfM9Lg0IeJUFGPX3agz2KSjMWD4LwwQ
 

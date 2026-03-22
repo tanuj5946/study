@@ -309,3 +309,40 @@ export interface ResultDetail extends ResultRow {
     difficulty: string;
   }[];
 }
+
+
+// recommendations + chat
+export const getRecommendationsFull = () =>
+  request<RecommendationData>('/api/recommendations');
+
+export const sendChatMessage = (message: string) =>
+  request<{ response: string }>('/api/recommendations/chat', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+
+export interface RecommendationData {
+  weakTopics: {
+    topic: string; accuracy: number; attempts: number; priority: string;
+  }[];
+  subjectPerformance: {
+    subject: string; avg_score: number; tests: number; trend: string;
+  }[];
+  nextModules: {
+    id: number; module_name: string; subject_name: string;
+    difficulty: string; flagged: boolean; reason: string;
+  }[];
+  predictions: {
+    topic: string; current_accuracy: number;
+    predicted_gain: number; predicted_score: number;
+  }[];
+  studyPlan: {
+    day: string; focus: string; activity: string;
+    duration: string; priority: string;
+  }[];
+  studyStats: {
+    avg_minutes_per_day: number;
+    sessions_this_week: number;
+    total_tests: number;
+  };
+}
