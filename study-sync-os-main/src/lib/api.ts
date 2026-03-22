@@ -212,3 +212,100 @@ export const getSubjectQuestions = (
   difficulty: 'easy' | 'medium' | 'hard' | 'mixed',
   limit: number = 10
 ) => request<Question[]>(`/api/tests/subject/${subjectId}?difficulty=${difficulty}&limit=${limit}`);
+
+// admin
+export const adminGetQuestions = (moduleId?: number) =>
+  request<AdminQuestion[]>(`/api/admin/questions${moduleId ? `?module_id=${moduleId}` : ''}`);
+
+export const adminAddQuestion = (payload: AdminQuestionPayload) =>
+  request<AdminQuestion>('/api/admin/questions', { method: 'POST', body: JSON.stringify(payload) });
+
+export const adminDeleteQuestion = (id: number) =>
+  request(`/api/admin/questions/${id}`, { method: 'DELETE' });
+
+export const adminAddModule = (payload: AdminModulePayload) =>
+  request<Module>('/api/admin/modules', { method: 'POST', body: JSON.stringify(payload) });
+
+export const adminAddNote = (payload: AdminNotePayload) =>
+  request<Note>('/api/admin/notes', { method: 'POST', body: JSON.stringify(payload) });
+
+export interface AdminQuestion {
+  id: number;
+  module_id: number;
+  module_name: string;
+  subject_name: string;
+  topic: string;
+  difficulty: string;
+  question: string;
+  options: string[];
+  correct_answer: string;
+}
+
+export interface AdminQuestionPayload {
+  module_id: number;
+  topic: string;
+  difficulty: string;
+  question: string;
+  options: string[];
+  correct_answer: string;
+}
+
+export interface AdminModulePayload {
+  subject_id: number;
+  module_name: string;
+  difficulty: string;
+  estimated_hours: number;
+}
+
+export interface AdminNotePayload {
+  module_id: number;
+  title: string;
+  content: string;
+}
+
+// analytics
+export const getAnalyticsSummary = () =>
+  request<AnalyticsSummary>('/api/analytics/summary');
+
+export const getResults = () =>
+  request<ResultRow[]>('/api/analytics/results');
+
+export const getResultDetail = (id: number) =>
+  request<ResultDetail>(`/api/analytics/results/${id}`);
+
+export interface AnalyticsSummary {
+  summary: {
+    total_tests: number;
+    avg_score: string;
+    best_score: string;
+    passed: number;
+    failed: number;
+  };
+  bySubject: { subject_name: string; total_tests: number; avg_score: string }[];
+  topicMastery: { topic: string; accuracy: string; attempts: number }[];
+  trend: { date: string; avg_score: string; tests_taken: number }[];
+}
+
+export interface ResultRow {
+  id: number;
+  score: number;
+  total_questions: number;
+  percentage: string;
+  created_at: string;
+  module_name: string;
+  subject_name: string;
+  passed: boolean;
+}
+
+export interface ResultDetail extends ResultRow {
+  answers: {
+    question_id: number;
+    question: string;
+    options: string[];
+    correct_answer: string;
+    selected_answer: string;
+    is_correct: boolean;
+    topic: string;
+    difficulty: string;
+  }[];
+}

@@ -7,16 +7,23 @@ import { SettingsContent } from "@/components/app/SettingsContent";
 import { PlannerContent } from "@/components/app/PlannerContent";
 import { TestsContent } from "@/components/app/TestsContent";
 import { ProtectedRoute } from "@/components/app/ProtectedRoute";
+import { AdminContent } from "@/components/app/AdminContent";
+import { AnalyticsContent } from "@/components/app/AnalyticsContent";
+
+
+
 
 const AppDashboard = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
   const renderContent = () => {
+    if (location.pathname === "/app/admin") return <AdminContent />;
     if (location.pathname === "/app/modules") return <ModulesContent />;
     if (location.pathname === "/app/planner") return <PlannerContent />;
     if (location.pathname === "/app/tests") return <TestsContent />;
     if (location.pathname === "/app/settings") return <SettingsContent />;
+    if (location.pathname === "/app/analytics") return <AnalyticsContent />;
     return <DashboardContent />;
   };
 
