@@ -17,8 +17,10 @@ const recommendationRoutes = require("../routes/recommendations");
 const app = express();
 
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:8080",
-  credentials: true,
+  origin: [process.env.CLIENT_URL || "http://localhost:8080",
+   "https://your-app.vercel.app",
+   ],
+    credentials: true,
 }));
 app.use(express.json());
 
