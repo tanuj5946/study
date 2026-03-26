@@ -18,7 +18,7 @@ const app = express();
 
 app.use(cors({
   origin: [process.env.CLIENT_URL || "http://localhost:8080",
-   "https://your-app.vercel.app",
+   "https://study-beta-henna.vercel.app/",
    ],
     credentials: true,
 }));
