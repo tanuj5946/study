@@ -9,6 +9,7 @@ const notesRoutes = require("../routes/notes");
 const plannerRoutes = require("../routes/planner");
 const profileRoutes = require("../routes/profile");
 const miniTestRoutes = require("../routes/minitest");
+const notificationRoutes = require("../routes/notifications");
 const authRoutes       = require("../routes/auth");
 const analyticsRoutes = require("../routes/analytics");
 const recommendationRoutes = require("../routes/recommendations");
@@ -35,5 +36,6 @@ app.use("/api/notes", notesRoutes);
 app.use("/api/planner", plannerRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/minitest", miniTestRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 module.exports = app;

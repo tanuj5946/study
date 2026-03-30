@@ -400,6 +400,36 @@ CREATE TABLE public.topic_mastery (
 ALTER TABLE public.topic_mastery OWNER TO postgres;
 
 --
+-- Name: notification_preferences; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.notification_preferences (
+    user_id integer NOT NULL,
+    email_notifications boolean DEFAULT true NOT NULL,
+    study_reminders boolean DEFAULT true NOT NULL,
+    weekly_digest boolean DEFAULT false NOT NULL,
+    progress_alerts boolean DEFAULT true NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.notification_preferences OWNER TO postgres;
+
+--
+-- Name: notification_reads; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.notification_reads (
+    user_id integer NOT NULL,
+    notification_id text NOT NULL,
+    read_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.notification_reads OWNER TO postgres;
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -545,6 +575,22 @@ ALTER TABLE ONLY public.module_unlocks
 
 ALTER TABLE ONLY public.module_unlocks
     ADD CONSTRAINT module_unlocks_user_id_module_id_key UNIQUE (user_id, module_id);
+
+
+--
+-- Name: notification_preferences notification_preferences_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_preferences
+    ADD CONSTRAINT notification_preferences_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: notification_reads notification_reads_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_reads
+    ADD CONSTRAINT notification_reads_pkey PRIMARY KEY (user_id, notification_id);
 
 
 --
@@ -709,6 +755,22 @@ ALTER TABLE ONLY public.module_unlocks
 
 ALTER TABLE ONLY public.module_unlocks
     ADD CONSTRAINT module_unlocks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notification_preferences notification_preferences_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_preferences
+    ADD CONSTRAINT notification_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notification_reads notification_reads_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_reads
+    ADD CONSTRAINT notification_reads_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

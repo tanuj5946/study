@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, CalendarDays, BarChart3,
   Lightbulb, Settings, Search, Bell, ChevronLeft, Menu,
   LogOut, Check, ClipboardCheck, ShieldAlert,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
-import { format, startOfWeek, endOfWeek } from "date-fns";
+import { format, formatDistanceToNow, startOfWeek, endOfWeek } from "date-fns";
+import { getNotifications, markNotificationsRead, type AppNotification } from "@/lib/api";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview",        path: "/app" },
@@ -18,12 +18,6 @@ const navItems = [
   { icon: BarChart3,       label: "Analytics",       path: "/app/analytics" },
   { icon: Lightbulb,       label: "Recommendations", path: "/app/recommendations" },
   { icon: Settings,        label: "Settings",        path: "/app/settings" },
-];
-
-const mockNotifications = [
-  { id: "1", title: "Study reminder",     body: "You have a session scheduled in 30 minutes.", time: "10 min ago", read: false },
-  { id: "2", title: "Milestone reached!", body: "You completed 10 study sessions this week.",  time: "2 hrs ago",  read: false },
-  { id: "3", title: "Weekly digest ready",body: "Your weekly progress report is available.",   time: "1 day ago",  read: true  },
 ];
 
 export function AppSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
@@ -91,7 +85,8 @@ export function AppTopbar({ sidebarCollapsed }: { sidebarCollapsed: boolean }) {
   const navigate = useNavigate();
   const [notifOpen, setNotifOpen]     = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [readIds, setReadIds]         = useState<Set<string>>(new Set());
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   const now       = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -99,9 +94,82 @@ export function AppTopbar({ sidebarCollapsed }: { sidebarCollapsed: boolean }) {
   const dateRange = `${format(weekStart, "MMM d")} – ${format(weekEnd, "MMM d, yyyy")}`;
 
   const initials    = getUserInitials(user);
-  const unreadCount = mockNotifications.filter(n => !n.read && !readIds.has(n.id)).length;
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
 
-  const markAllRead = () => setReadIds(new Set(mockNotifications.map(n => n.id)));
+  useEffect(() => {
+    if (!user?.id) {
+      setNotifications([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadNotifications = async (showLoading: boolean) => {
+      if (showLoading) {
+        setLoadingNotifications(true);
+      }
+
+      try {
+        const data = await getNotifications();
+        if (!cancelled) {
+          setNotifications(data.notifications);
+        }
+      } catch {
+        if (!cancelled) {
+          setNotifications([]);
+        }
+      } finally {
+        if (!cancelled && showLoading) {
+          setLoadingNotifications(false);
+        }
+      }
+    };
+
+    loadNotifications(true);
+    const intervalId = window.setInterval(() => {
+      loadNotifications(false);
+    }, 60000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [user?.id]);
+
+  const handleNotificationOpen = async (open: boolean) => {
+    setNotifOpen(open);
+
+    if (!open || !user?.id) {
+      return;
+    }
+
+    setLoadingNotifications(true);
+    try {
+      const data = await getNotifications();
+      setNotifications(data.notifications);
+    } catch {
+      setNotifications([]);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const markAllRead = async () => {
+    const unreadIds = notifications
+      .filter((notification) => !notification.read)
+      .map((notification) => notification.id);
+
+    if (!unreadIds.length) {
+      return;
+    }
+
+    try {
+      await markNotificationsRead(unreadIds);
+      setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })));
+    } catch {
+      // leave the current list visible if the request fails
+    }
+  };
 
   return (
     <header className={`sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/80 backdrop-blur-xl px-6 transition-all ${sidebarCollapsed ? "ml-16" : "ml-60"}`}>
@@ -120,7 +188,7 @@ export function AppTopbar({ sidebarCollapsed }: { sidebarCollapsed: boolean }) {
         <span className="text-xs text-muted-foreground hidden sm:block">{dateRange}</span>
 
         {/* Notifications */}
-        <Popover open={notifOpen} onOpenChange={setNotifOpen}>
+        <Popover open={notifOpen} onOpenChange={handleNotificationOpen}>
           <PopoverTrigger asChild>
             <button className="relative p-2 rounded-lg hover:bg-secondary text-muted-foreground">
               <Bell size={18} />
@@ -139,16 +207,27 @@ export function AppTopbar({ sidebarCollapsed }: { sidebarCollapsed: boolean }) {
               )}
             </div>
             <div className="max-h-72 overflow-y-auto">
-              {mockNotifications.map(n => {
-                const isRead = n.read || readIds.has(n.id);
-                return (
-                  <div key={n.id} className={`px-4 py-3 border-b border-border last:border-0 ${!isRead ? "bg-accent/30" : ""}`}>
-                    <p className="text-sm font-medium text-foreground">{n.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{n.body}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{n.time}</p>
-                  </div>
-                );
-              })}
+              {loadingNotifications ? (
+                <p className="px-4 py-6 text-sm text-muted-foreground text-center">Loading notifications...</p>
+              ) : notifications.length === 0 ? (
+                <p className="px-4 py-6 text-sm text-muted-foreground text-center">No notifications yet.</p>
+              ) : (
+                notifications.map((notification) => {
+                  const timeSource = notification.event_at || notification.created_at;
+                  const timeLabel = formatDistanceToNow(new Date(timeSource), { addSuffix: true });
+
+                  return (
+                    <div
+                      key={notification.id}
+                      className={`px-4 py-3 border-b border-border last:border-0 ${!notification.read ? "bg-accent/30" : ""}`}
+                    >
+                      <p className="text-sm font-medium text-foreground">{notification.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{notification.body}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{timeLabel}</p>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </PopoverContent>
         </Popover>

@@ -5,13 +5,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { User, Palette, Bell, Shield, LogOut, Save, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { updateProfile, changePassword, deleteAccount } from "@/lib/api";
+import {
+  updateProfile,
+  changePassword,
+  deleteAccount,
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  type NotificationPreferences,
+} from "@/lib/api";
+
+const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  email_notifications: true,
+  study_reminders: true,
+  weekly_digest: false,
+  progress_alerts: true,
+};
+
+const NOTIFICATION_ITEMS: Array<{ key: keyof NotificationPreferences; label: string; sub: string }> = [
+  { key: "email_notifications", label: "Email Notifications", sub: "Receive updates via email" },
+  { key: "study_reminders", label: "Study Reminders", sub: "Get reminded about your study schedule" },
+  { key: "weekly_digest", label: "Weekly Digest", sub: "Receive a weekly summary of your progress" },
+  { key: "progress_alerts", label: "Progress Alerts", sub: "Get notified when you reach milestones" },
+];
 
 export function SettingsContent() {
   const { user, signOut } = useAuth();
@@ -30,10 +50,9 @@ export function SettingsContent() {
   );
 
   // notifications (local state only — no DB for these yet)
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [studyReminders, setStudyReminders]         = useState(true);
-  const [weeklyDigest, setWeeklyDigest]             = useState(false);
-  const [progressAlerts, setProgressAlerts]         = useState(true);
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFERENCES);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [savingNotifications, setSavingNotifications] = useState(false);
 
   // delete account
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -42,6 +61,39 @@ export function SettingsContent() {
   useEffect(() => {
     if (user?.name) setDisplayName(user.name);
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadNotificationPreferences = async () => {
+      setLoadingNotifications(true);
+
+      try {
+        const preferences = await getNotificationPreferences();
+        if (!cancelled) {
+          setNotificationPrefs(preferences);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          toast({ title: "Error", description: err.message, variant: "destructive" });
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingNotifications(false);
+        }
+      }
+    };
+
+    loadNotificationPreferences();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const handleThemeChange = (value: string) => {
     setTheme(value);
@@ -91,6 +143,23 @@ export function SettingsContent() {
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
       setDeleting(false);
+    }
+  };
+
+  const handleNotificationToggle = (key: keyof NotificationPreferences, value: boolean) => {
+    setNotificationPrefs((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveNotifications = async () => {
+    setSavingNotifications(true);
+    try {
+      const updatedPreferences = await updateNotificationPreferences(notificationPrefs);
+      setNotificationPrefs(updatedPreferences);
+      toast({ title: "Notification preferences saved" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingNotifications(false);
     }
   };
 
@@ -167,23 +236,30 @@ export function SettingsContent() {
             <h2 className="text-lg font-semibold text-foreground">Notification Preferences</h2>
             <Separator />
             <div className="space-y-5">
-              {[
-                { label: "Email Notifications",  sub: "Receive updates via email",                    val: emailNotifications, set: setEmailNotifications },
-                { label: "Study Reminders",       sub: "Get reminded about your study schedule",       val: studyReminders,     set: setStudyReminders },
-                { label: "Weekly Digest",         sub: "Receive a weekly summary of your progress",    val: weeklyDigest,       set: setWeeklyDigest },
-                { label: "Progress Alerts",       sub: "Get notified when you reach milestones",       val: progressAlerts,     set: setProgressAlerts },
-              ].map((item, i, arr) => (
+              {NOTIFICATION_ITEMS.map((item, i, arr) => (
                 <div key={item.label}>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-foreground">{item.label}</p>
                       <p className="text-xs text-muted-foreground">{item.sub}</p>
                     </div>
-                    <Switch checked={item.val} onCheckedChange={item.set} />
+                    <Switch
+                      checked={notificationPrefs[item.key]}
+                      disabled={loadingNotifications || savingNotifications}
+                      onCheckedChange={(value) => handleNotificationToggle(item.key, value)}
+                    />
                   </div>
                   {i < arr.length - 1 && <Separator className="mt-4" />}
                 </div>
               ))}
+            </div>
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <p className="text-xs text-muted-foreground">
+                {loadingNotifications ? "Loading your saved preferences..." : "Changes are saved to your account."}
+              </p>
+              <Button onClick={handleSaveNotifications} disabled={loadingNotifications || savingNotifications} className="gap-2">
+                <Save size={14} />{savingNotifications ? "Saving..." : "Save Preferences"}
+              </Button>
             </div>
           </div>
         </TabsContent>

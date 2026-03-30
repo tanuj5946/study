@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
@@ -16,6 +16,22 @@ import {
 } from "@/lib/api";
 
 const DIFFICULTIES = ["Easy", "Medium", "Hard"];
+
+const getQuestionOptions = (options: AdminQuestion["options"]): string[] => {
+  if (Array.isArray(options)) {
+    return options.map((option) => String(option));
+  }
+
+  if (typeof options === "string") {
+    try {
+      return getQuestionOptions(JSON.parse(options));
+    } catch {
+      return options.trim() ? [options] : [];
+    }
+  }
+
+  return [];
+};
 
 export function AdminContent() {
   const [subjects, setSubjects]         = useState<Subject[]>([]);
@@ -167,12 +183,14 @@ export function AdminContent() {
                   <SelectTrigger><SelectValue placeholder="Select module" /></SelectTrigger>
                   <SelectContent>
                     {subjects.map(sub => (
-                      <div key={sub.id}>
-                        <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">{sub.name}</p>
+                      <SelectGroup key={sub.id}>
+                        <SelectLabel>{sub.name}</SelectLabel>
                         {(sub.modules ?? []).map(m => (
-                          <SelectItem key={m.id} value={m.id.toString()}>{m.module_name}</SelectItem>
+                          <SelectItem key={m.id} value={m.id.toString()}>
+                            {m.module_name}
+                          </SelectItem>
                         ))}
-                      </div>
+                      </SelectGroup>
                     ))}
                   </SelectContent>
                 </Select>
@@ -298,7 +316,7 @@ export function AdminContent() {
                       </div>
                       <p className="text-sm text-foreground font-medium">{q.question}</p>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {q.options.map((opt, idx) => (
+                        {getQuestionOptions(q.options).map((opt, idx) => (
                           <span
                             key={idx}
                             className={`text-xs px-2 py-0.5 rounded border ${opt === q.correct_answer
@@ -417,12 +435,14 @@ export function AdminContent() {
                   <SelectTrigger><SelectValue placeholder="Select module" /></SelectTrigger>
                   <SelectContent>
                     {subjects.map(sub => (
-                      <div key={sub.id}>
-                        <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">{sub.name}</p>
+                      <SelectGroup key={sub.id}>
+                        <SelectLabel>{sub.name}</SelectLabel>
                         {(sub.modules ?? []).map(m => (
-                          <SelectItem key={m.id} value={m.id.toString()}>{m.module_name}</SelectItem>
+                          <SelectItem key={m.id} value={m.id.toString()}>
+                            {m.module_name}
+                          </SelectItem>
                         ))}
-                      </div>
+                      </SelectGroup>
                     ))}
                   </SelectContent>
                 </Select>

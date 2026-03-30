@@ -6,9 +6,9 @@ const { ollama } = require('../lib/ollamaClient');
 const { searchChunks } = require('../services/ragSearch'); // ✅ named import
 
 // ✅ Initialize with host — this is what was broken before
-const ollama = new Ollama({
-  host: process.env.OLLAMA_HOST || 'http://localhost:11434',
-});
+// const ollama = new Ollama({
+//   host: process.env.OLLAMA_HOST || 'http://localhost:11434',
+// });
 
 // ── Recommendation Engine ─────────────────────────────────
 
@@ -201,7 +201,7 @@ function buildContext(data, recommendations) {
 }
 
 // ── System Prompt ─────────────────────────────────────────
-function createSystemPrompt(ctx) {
+function createSystemPrompt(ctx, ragChunks = []) {
   const hasData = (ctx.total_tests || 0) > 0;
   const ragSection = ragChunks.length > 0
     ? `\nRELEVANT STUDY MATERIAL (from student's notes/modules — use this to answer topic questions):\n${ragChunks.map((c, i) => `[${i + 1}] ${c.title}:\n${c.chunk_text}`).join('\n\n')}`

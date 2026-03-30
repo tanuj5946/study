@@ -10,6 +10,27 @@ const adminOnly = (req, res, next) => {
   next();
 };
 
+const normalizeQuestionOptions = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((option) => String(option));
+  }
+
+  if (typeof value === 'string') {
+    try {
+      return normalizeQuestionOptions(JSON.parse(value));
+    } catch {
+      return value.trim() ? [value] : [];
+    }
+  }
+
+  return [];
+};
+
+const normalizeQuestionRow = (row) => ({
+  ...row,
+  options: normalizeQuestionOptions(row.options),
+});
+
 // ── Questions ─────────────────────────────────────────────
 
 // GET /api/admin/questions?module_id=1
@@ -24,7 +45,7 @@ router.get('/questions', verifyToken, adminOnly, async (req, res) => {
       ${module_id ? 'WHERE q.module_id = $1' : ''}
       ORDER BY q.id DESC
     `, module_id ? [module_id] : []);
-    res.json(rows);
+    res.json(rows.map(normalizeQuestionRow));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -46,9 +67,18 @@ router.post('/questions', verifyToken, adminOnly, async (req, res) => {
     const { rows } = await db.query(`
       INSERT INTO questions (module_id, topic, difficulty, question, options, correct_answer)
       VALUES ($1, $2, $3, $4, $5::jsonb, $6)
-      RETURNING *
+      RETURNING id
     `, [module_id, topic, difficulty, question, JSON.stringify(options), correct_answer]);
-    res.json(rows[0]);
+
+    const { rows: questionRows } = await db.query(`
+      SELECT q.*, m.module_name, s.name as subject_name
+      FROM questions q
+      JOIN modules m ON m.id = q.module_id
+      JOIN subjects s ON s.id = m.subject_id
+      WHERE q.id = $1
+    `, [rows[0].id]);
+
+    res.json(normalizeQuestionRow(questionRows[0]));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

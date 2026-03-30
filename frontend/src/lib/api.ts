@@ -152,6 +152,25 @@ export const changePassword = (current_password: string, new_password: string) =
 export const deleteAccount = () =>
   request('/api/profile', { method: 'DELETE' });
 
+// notifications
+export const getNotificationPreferences = () =>
+  request<NotificationPreferences>('/api/notifications/preferences');
+
+export const updateNotificationPreferences = (payload: NotificationPreferences) =>
+  request<NotificationPreferences>('/api/notifications/preferences', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+
+export const getNotifications = () =>
+  request<NotificationsResponse>('/api/notifications');
+
+export const markNotificationsRead = (notification_ids: string[]) =>
+  request<{ success: boolean }>('/api/notifications/read', {
+    method: 'POST',
+    body: JSON.stringify({ notification_ids }),
+  });
+
 // new types
 export interface StudySession {
   id: number;
@@ -173,6 +192,28 @@ export interface SessionPayload {
   start_time: string;
   duration_minutes: number;
   module_id?: number;
+}
+
+export interface NotificationPreferences {
+  email_notifications: boolean;
+  study_reminders: boolean;
+  weekly_digest: boolean;
+  progress_alerts: boolean;
+}
+
+export interface AppNotification {
+  id: string;
+  type: 'session' | 'milestone' | 'digest';
+  title: string;
+  body: string;
+  created_at: string;
+  event_at: string | null;
+  read: boolean;
+}
+
+export interface NotificationsResponse {
+  notifications: AppNotification[];
+  unread_count: number;
 }
 // mini test
 export const getMiniTestQuestions = (moduleId: number) =>
@@ -237,7 +278,7 @@ export interface AdminQuestion {
   topic: string;
   difficulty: string;
   question: string;
-  options: string[];
+  options: string[] | string | null;
   correct_answer: string;
 }
 

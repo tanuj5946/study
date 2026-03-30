@@ -27,4 +27,4 @@ async function embedText(text) {
   return res.embeddings[0];
 }
 
-module.exports = { generateAnswer, embedText };
+module.exports = { ollama, generateAnswer, embedText };

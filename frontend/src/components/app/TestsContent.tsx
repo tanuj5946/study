@@ -25,7 +25,7 @@ type View =
   | { step: "select" }
   | { step: "difficulty"; subject: Subject }
   | { step: "quiz"; subject: Subject; difficulty: Difficulty; count: number }
-  | { step: "result"; subject: Subject; difficulty: Difficulty; answers: AnswerRecord[]; questions: Question[] };
+  | { step: "result"; subject: Subject; difficulty: Difficulty; count: number; answers: AnswerRecord[]; questions: Question[] };
 
 /* ── Difficulty config ───────────────────────────────────── */
 
@@ -142,7 +142,7 @@ function DifficultySelect({ subject, onSelect, onBack }: {
         {DIFFICULTIES.map(d => (
           <button
             key={d.value}
-            onClick={() => onSelect(d.value)}
+            onClick={() => onSelect(d.value, questionCount)}
             className={`text-left rounded-xl border-2 p-4 transition-all ${d.color}`}
           >
             <div className="flex items-center gap-2 mb-1">
@@ -414,7 +414,7 @@ export function TestsContent() {
           difficulty={view.difficulty}
           count={view.count}
           onFinish={(answers, questions) =>
-            setView({ step: "result", subject: view.subject, difficulty: view.difficulty, answers, questions })
+            setView({ step: "result", subject: view.subject, difficulty: view.difficulty, count: view.count, answers, questions })
           }
           onBack={() => setView({ step: "difficulty", subject: view.subject })}
         />
@@ -426,7 +426,7 @@ export function TestsContent() {
           difficulty={view.difficulty}
           answers={view.answers}
           questions={view.questions}
-          onRetry={() => setView({ step: "quiz", subject: view.subject, difficulty: view.difficulty })}
+          onRetry={() => setView({ step: "quiz", subject: view.subject, difficulty: view.difficulty, count: view.count })}
           onBack={() => setView({ step: "select" })}
         />
       );

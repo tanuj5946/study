@@ -35,6 +35,21 @@ const defaultForm = (date?: Date): SessionForm => ({
   module_id: "",
 });
 
+function getSessionDateValue(session: Pick<StudySession, "date" | "session_date">) {
+  const raw = session.date ?? session.session_date;
+  if (!raw) return null;
+
+  if (typeof raw === "string") {
+    return raw.includes("T") ? raw.split("T")[0] : raw;
+  }
+
+  return format(raw, "yyyy-MM-dd");
+}
+
+function hasDateValue(value: string | null): value is string {
+  return Boolean(value);
+}
+
 export function PlannerContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -48,10 +63,9 @@ export function PlannerContent() {
   const monthEnd   = format(endOfMonth(month),   "yyyy-MM-dd");
 
   const { data: sessions = [], isLoading } = useQuery({
-    
     queryKey: ["study-sessions", monthStart, monthEnd],
     queryFn: () => getSessions(monthStart, monthEnd),
-    // enabled: !!user,
+    enabled: !!user,
   });
 
   const { data: subjects = [] } = useQuery({
@@ -61,8 +75,15 @@ export function PlannerContent() {
 
   const createMutation = useMutation({
     mutationFn: (data: SessionPayload) => createSession(data),
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["study-sessions"] });
+    onSuccess: async (session) => {
+      const savedDate = getSessionDateValue(session);
+      if (savedDate) {
+        const nextDate = new Date(`${savedDate}T00:00:00`);
+        setSelectedDate(nextDate);
+        setMonth(nextDate);
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["study-sessions"] });
       toast({ title: "Session created" });
       closeDialog();
     },
@@ -72,14 +93,27 @@ export function PlannerContent() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<SessionPayload & { completed: boolean }> }) =>
       updateSession(id, data),
-    onSuccess: () => queryClient.refetchQueries({ queryKey: ["study-sessions"] }),
+    onSuccess: async (session) => {
+      const savedDate = getSessionDateValue(session);
+      if (savedDate) {
+        const nextDate = new Date(`${savedDate}T00:00:00`);
+        setSelectedDate(nextDate);
+        setMonth(nextDate);
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["study-sessions"] });
+      if (editingSession) {
+        toast({ title: "Session updated" });
+        closeDialog();
+      }
+    },
     onError: () => toast({ title: "Failed to update session", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteSession(id),
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["study-sessions"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["study-sessions"] });
       toast({ title: "Session deleted" });
       closeDialog();
     },
@@ -103,7 +137,7 @@ export function PlannerContent() {
     setForm({
       title:            session.title,
       description:      session.description,
-      date:             session.date,
+      date:             getSessionDateValue(session) ?? format(new Date(), "yyyy-MM-dd"),
       start_time:       session.start_time ?? "",
       duration_minutes: session.duration_minutes,
       module_id:        session.module_id?.toString() ?? "",
@@ -116,6 +150,26 @@ export function PlannerContent() {
       toast({ title: "Title is required", variant: "destructive" });
       return;
     }
+    if (!form.description.trim()) {
+      toast({ title: "Description is required", variant: "destructive" });
+      return;
+    }
+    if (!form.date) {
+      toast({ title: "Date is required", variant: "destructive" });
+      return;
+    }
+    if (!form.start_time) {
+      toast({ title: "Start time is required", variant: "destructive" });
+      return;
+    }
+    if (!form.duration_minutes || form.duration_minutes < 5) {
+      toast({ title: "Valid duration is required", variant: "destructive" });
+      return;
+    }
+    if (!form.module_id) {
+      toast({ title: "Module is required", variant: "destructive" });
+      return;
+    }
     const payload: SessionPayload = {
       title:            form.title,
       description:      form.description,
@@ -126,8 +180,6 @@ export function PlannerContent() {
     };
     if (editingSession) {
       updateMutation.mutate({ id: editingSession.id, data: payload });
-      toast({ title: "Session updated" });
-      closeDialog();
     } else {
       createMutation.mutate(payload);
     }
@@ -138,7 +190,7 @@ export function PlannerContent() {
 
   const daySessions = useMemo(
   () => sessions.filter(s => {
-    const d = s.date ?? s.session_date?.split('T')[0];
+    const d = getSessionDateValue(s);
     if (!d) return false;
     return isSameDay(new Date(d + "T00:00:00"), selectedDate);
   }),
@@ -147,15 +199,15 @@ export function PlannerContent() {
 
 const datesWithSessions = useMemo(
   () => sessions
-    .map(s => s.date ?? s.session_date?.split('T')[0])
-    .filter(Boolean)
+    .map(getSessionDateValue)
+    .filter(hasDateValue)
     .map(d => new Date(d + "T00:00:00")),
   [sessions]
 );
 
 const upcoming = useMemo(
   () => sessions.filter(s => {
-    const d = s.date ?? s.session_date?.split('T')[0];
+    const d = getSessionDateValue(s);
     if (!d || s.completed) return false;
     return isAfter(new Date(d + "T00:00:00"), new Date());
   }).slice(0, 5),
@@ -211,7 +263,7 @@ const upcoming = useMemo(
                 {upcoming.map(s => (
                   <button key={s.id}
                   onClick={() => {
-  const dateStr = s.date ?? s.session_date?.split('T')[0];
+  const dateStr = getSessionDateValue(s);
   if (!dateStr) return;
   const d = new Date(dateStr + "T00:00:00");
   setSelectedDate(d);
@@ -222,7 +274,7 @@ const upcoming = useMemo(
                     <CalendarDays size={14} className="text-muted-foreground shrink-0" />
                     <span className="truncate flex-1">{s.title}</span>
                     <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {format(new Date((s.date ?? s.session_date?.split('T')[0]) + "T00:00:00"), "MMM d")}
+                      {format(new Date(`${getSessionDateValue(s)}T00:00:00`), "MMM d")}
                     </span>
                   </button>
                 ))}
@@ -297,29 +349,29 @@ const upcoming = useMemo(
               <Input id="title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Review Normalization" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Description *</Label>
               <Input id="description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Optional notes" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
+                <Label htmlFor="date">Date *</Label>
                 <Input id="date" type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="start_time">Start Time</Label>
+                <Label htmlFor="start_time">Start Time *</Label>
                 <Input id="start_time" type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="duration">Duration (min)</Label>
+                <Label htmlFor="duration">Duration (min) *</Label>
                 <Input id="duration" type="number" min={5} step={5} value={form.duration_minutes}
                   onChange={e => setForm({ ...form, duration_minutes: parseInt(e.target.value) || 60 })} />
               </div>
               <div className="space-y-2">
-                <Label>Module</Label>
+                <Label>Module *</Label>
                 <Select value={form.module_id} onValueChange={v => setForm({ ...form, module_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select module" /></SelectTrigger>
                   <SelectContent>
                     {(subjects as Subject[]).map(sub => (
                       <div key={sub.id}>
