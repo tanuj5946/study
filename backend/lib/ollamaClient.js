@@ -20,7 +20,7 @@ async function generateAnswer(messages) {
 
 async function embedText(text) {
   const res = await ollama.embed({
-    model: process.env.OLLAMA_EMBED_MODEL || 'mxbai-embed-large',
+    model: process.env.OLLAMA_EMBED_MODEL || 'mxbai-embed-large:latest',
     input: text,
   });
 

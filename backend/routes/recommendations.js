@@ -203,45 +203,41 @@ function buildContext(data, recommendations) {
 // ── System Prompt ─────────────────────────────────────────
 function createSystemPrompt(ctx) {
   const hasData = (ctx.total_tests || 0) > 0;
+  const ragSection = ragChunks.length > 0
+    ? `\nRELEVANT STUDY MATERIAL (from student's notes/modules — use this to answer topic questions):\n${ragChunks.map((c, i) => `[${i + 1}] ${c.title}:\n${c.chunk_text}`).join('\n\n')}`
+    : '';
+  return `You are StudySync AI, an academic assistant embedded inside a student dashboard.
 
-  return `You are StudySync AI, an academic assistant for engineering students in India.
+YOUR ONLY JOB:
+- Help the student understand their OWN academic performance using the data below.
+- If study material is provided below, use it to answer topic/concept questions.
+- Give study advice, topic recommendations, and progress insights.
 
-RULES:
-- Reply in natural Hinglish.
-- Keep responses clear, short, and useful.
-- Use only STUDENT DATA.
-- Never invent missing details.
-- If data is missing, say: "Yeh data abhi available nahi hai."
-- Follow ctx.user_intent first if present.
-- Do not greet unless the student message is only a greeting.
-- If it is a direct study question, start with the answer immediately.
-- Use bullets when helpful.
-- Keep response under 250 words.
-
-OUTPUT:
-- greeting -> short greeting + 4-5 things they can ask
-- motivation -> short message + 1 action today
-- study_plan -> day-wise from study_plan only
-- weak_topics -> from weak_topics only
-- subject_performance -> from subjects only
-- predictions -> from predictions only
-- no data -> ask student to take a test first
-
+STRICT RULES:
+1. Reply in Hinglish (Hindi + English mix).
+2. If study material is available, use it to answer concept questions directly.
+3. If no study material matches the question, say: "Is topic ka material abhi available nahi hai."
+4. NEVER make up data. Only use the JSON context and study material provided.
+5. Keep replies under 250 words. Use bullet points.
+6. Do NOT act as a general chatbot — you are a dashboard assistant only.
 ${hasData ? "Test data is available." : "No tests attempted yet."}
 
 STUDENT DATA:
-${JSON.stringify(ctx)}`;
+${JSON.stringify(ctx)}
+${ragSection}
+
+${!hasData ? 'NOTE: No tests attempted yet. Encourage them to start.' : `NOTE: Student has taken ${ctx.total_tests} tests. Average: ${ctx.avg_score}%.`}`;
 }
 
 
 
 // ── Ollama Chat ───────────────────────────────────────────
 
-async function ollamaChatResponse(message, ctx) {
+async function ollamaChatResponse(message, ctx,ragChunks= []) {
   const response = await ollama.chat({
 model: process.env.OLLAMA_MODEL || 'llama3:8b-instruct-q5_0',
     messages: [
-      { role: 'system', content: createSystemPrompt(ctx) },
+      { role: 'system', content: createSystemPrompt(ctx,ragChunks) },
       { role: 'user', content: message },
     ],
     options: {
@@ -277,10 +273,23 @@ router.post('/chat', verifyToken, async (req, res) => {
     const recommendations = generateRecommendations(data);
     const ctx = buildContext(data, recommendations);
 
+    let ragChunks = [];
+    try {
+      ragChunks = await searchChunks({
+        user_id: req.user.id,
+        query: message,
+        limit: 4,
+        threshold: 0.3,
+      });
+    } catch (ragErr) {
+      console.warn('RAG search failed (non-fatal):', ragErr.message);
+      
+    }
+
     let response;
     try {
       // ✅ All messages go through Ollama now
-      response = await ollamaChatResponse(message, ctx);
+      response = await ollamaChatResponse(message, ctx,ragChunks);
     } catch (ollamaErr) {
       // Ollama is down or model not loaded — use fallback
       console.error('Ollama unavailable:', ollamaErr.message);
