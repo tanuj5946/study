@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ReactMarkdown from "react-markdown";
 import { getRecommendationsFull, sendChatMessage, type RecommendationData } from "@/lib/api";
 
 /* ── Chat message type ── */
@@ -20,21 +21,9 @@ interface Message {
 
 /* ── Markdown-like renderer ── */
 function ChatText({ text }: { text: string }) {
-  const lines = text.split("\n");
   return (
-    <div className="space-y-1 text-sm leading-relaxed">
-      {lines.map((line, i) => {
-        if (!line.trim()) return <br key={i} />;
-        // bold **text**
-        const parts = line.split(/\*\*(.*?)\*\*/g);
-        return (
-          <p key={i}>
-            {parts.map((p, j) =>
-              j % 2 === 1 ? <strong key={j}>{p}</strong> : p
-            )}
-          </p>
-        );
-      })}
+    <div className="text-sm leading-relaxed [&_h1]:mb-2 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:text-sm [&_h3]:font-semibold [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_li]:marker:text-muted-foreground [&_strong]:font-semibold">
+      <ReactMarkdown>{text}</ReactMarkdown>
     </div>
   );
 }

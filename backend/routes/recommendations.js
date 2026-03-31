@@ -1,11 +1,13 @@
 const router = require('express').Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/auth');
-const { ollama } = require('../lib/ollamaClient');
+const { generateAnswer } = require('../lib/ollamaClient');
 const { searchChunks } = require('../services/ragSearch');
 const { ensureNotesSyncedForUser } = require('../services/ragNotes');
 
 let initPromise;
+const MAX_RAG_CHUNKS = 2;
+const MAX_RAG_CHARS_PER_CHUNK = 700;
 
 function ensureNoteProgressTable() {
   if (!initPromise) {
@@ -318,10 +320,56 @@ function buildContext(data, recommendations) {
   };
 }
 
+function compactContextForPrompt(ctx) {
+  return {
+    total_tests: ctx.total_tests,
+    avg_score: ctx.avg_score,
+    weak_topics: ctx.weak_topics.slice(0, 3),
+    strong_topics: ctx.strong_topics.slice(0, 4),
+    subjects: ctx.subjects.slice(0, 3),
+    study_plan: ctx.study_plan.slice(0, 3),
+    next_modules: ctx.next_modules.slice(0, 2).map((module) => ({
+      module_name: module.module_name,
+      subject_name: module.subject_name,
+      action: module.action,
+      reason: module.reason,
+    })),
+    predictions: ctx.predictions.slice(0, 2),
+    sessions_week: ctx.sessions_week,
+    avg_daily_mins: ctx.avg_daily_mins,
+    last_test: ctx.last_test
+      ? {
+          module_name: ctx.last_test.module_name,
+          subject_name: ctx.last_test.subject_name,
+          percentage: ctx.last_test.percentage,
+          created_at: ctx.last_test.created_at,
+        }
+      : null,
+  };
+}
+
+function trimForPrompt(text, maxLength = MAX_RAG_CHARS_PER_CHUNK) {
+  if (!text) return '';
+
+  const clean = text
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (clean.length <= maxLength) {
+    return clean;
+  }
+
+  return `${clean.slice(0, maxLength - 3).trim()}...`;
+}
+
 function createSystemPrompt(ctx, ragChunks = []) {
   const hasData = (ctx.total_tests || 0) > 0;
+  const compactCtx = compactContextForPrompt(ctx);
   const ragSection = ragChunks.length > 0
-    ? `\nRELEVANT STUDY MATERIAL (from student's notes/modules - use this to answer topic questions):\n${ragChunks.map((chunk, index) => `[${index + 1}] ${chunk.title}:\n${chunk.chunk_text}`).join('\n\n')}`
+    ? `\nRELEVANT STUDY MATERIAL:\n${ragChunks
+        .slice(0, MAX_RAG_CHUNKS)
+        .map((chunk, index) => `[${index + 1}] ${chunk.title}\n${trimForPrompt(chunk.chunk_text)}`)
+        .join('\n\n')}`
     : '';
 
   return `You are StudySync AI, an academic assistant embedded inside a student dashboard.
@@ -336,40 +384,175 @@ STRICT RULES:
 2. If study material is available, use it to answer concept questions directly.
 3. If no study material matches the question, say: "Is topic ka material abhi available nahi hai."
 4. NEVER make up data. Only use the JSON context and study material provided.
-5. Keep replies under 250 words. Use bullet points.
+5. Keep replies under 350 words. Use markdown with short headings and bullet points where helpful.
 6. Do NOT act as a general chatbot - you are a dashboard assistant only.
+7. For topic/concept questions like "explain ACID properties", do NOT dump raw notes or note titles.
+8. For topic/concept questions, answer in this structure:
+   - Start with a short heading.
+   - Give a 1-2 line definition/summary.
+   - Explain the key points in 3-5 bullets.
+   - Give one short example if useful.
+9. Mention weak topics, study plan, or performance only when the user asks about progress/recommendations, not during pure concept explanations.
+10. If multiple study-material chunks are available, merge them into one clean explanation in your own words.
 ${hasData ? 'Test data is available.' : 'No tests attempted yet.'}
 
 STUDENT DATA:
-${JSON.stringify(ctx)}
+${JSON.stringify(compactCtx)}
 ${ragSection}
 
 ${!hasData ? 'NOTE: No tests attempted yet. Encourage them to start.' : `NOTE: Student has taken ${ctx.total_tests} tests. Average: ${ctx.avg_score}%.`}`;
 }
 
 async function ollamaChatResponse(message, ctx, ragChunks = []) {
-  const response = await ollama.chat({
-    model: process.env.OLLAMA_MODEL || 'llama3:8b-instruct-q5_0',
-    messages: [
+  return generateAnswer(
+    [
       { role: 'system', content: createSystemPrompt(ctx, ragChunks) },
       { role: 'user', content: message },
     ],
-    options: {
-      temperature: 0.15,
-      top_p: 0.9,
-      num_predict: 350,
-    },
-  });
-
-  return response.message.content;
+    {
+      model: process.env.OLLAMA_CHAT_MODEL || process.env.OLLAMA_MODEL || 'llama3:latest',
+      ollamaOptions: {
+        temperature: 0.1,
+        top_p: 0.85,
+        num_ctx: 2048,
+        num_predict: 280,
+      },
+    }
+  );
 }
 
-function chatbotFallback(message) {
-  const msg = message.toLowerCase().trim();
-  if (/^(hi|hello|hey|hlo|hii|namaste|namaskar)/.test(msg)) {
-    return 'Namaste! Main StudySync AI hun. Abhi AI service temporarily unavailable hai - thodi der baad try karo!';
+function summarizeChunkText(text, maxLength = 220) {
+  if (!text) return '';
+
+  const clean = text
+    .replace(/\s+/g, ' ')
+    .replace(/[#>*`_-]/g, ' ')
+    .trim();
+
+  if (clean.length <= maxLength) {
+    return clean;
   }
-  return 'Maaf karo! AI service abhi temporarily down hai. Thodi der baad try karo ya page refresh karo.';
+
+  return `${clean.slice(0, maxLength - 3).trim()}...`;
+}
+
+function formatBulletLines(items) {
+  return items.filter(Boolean).map((item) => `- ${item}`);
+}
+
+function buildOfflineChatResponse(message, ctx, ragChunks = []) {
+  const msg = message.toLowerCase().trim();
+
+  if (/^(hi|hello|hey|hlo|hii|namaste|namaskar)/.test(msg)) {
+    const intro = ['Namaste! Main aapke dashboard data ke basis par help kar raha hun.'];
+
+    if (ctx.total_tests > 0) {
+      intro.push(`Aapne ab tak ${ctx.total_tests} tests diye hain aur average ${ctx.avg_score}% hai.`);
+    } else {
+      intro.push('Abhi tak test data nahi hai, lekin main aapko next study steps bata sakta hun.');
+    }
+
+    intro.push('Aap pooch sakte ho: "Mujhe kya padhna chahiye?", "Study plan do", ya "Meri weak topics kaunsi hain?"');
+    return intro.join(' ');
+  }
+
+  if (ragChunks.length > 0 && /(kya hai|what is|explain|samjha|define|difference|kaise|kyu|kyon|topic|concept)/.test(msg)) {
+    const primaryChunk = ragChunks[0];
+    const noteLines = [
+      '**Relevant Notes Summary**',
+      primaryChunk ? `Topic ke liye sabse relevant note: **${primaryChunk.title}**.` : null,
+      primaryChunk ? summarizeChunkText(primaryChunk.chunk_text, 320) : null,
+      '',
+      'Detailed Llama explanation abhi generate nahi ho payi. Backend inference recover hote hi answer aur structured milega.',
+    ];
+
+    return noteLines.join('\n');
+  }
+
+  if (/(weak|kamzor|weak topic|topics|improve|improvement)/.test(msg)) {
+    if (ctx.weak_topics.length === 0) {
+      return 'Abhi weak topics detect nahi hue. Aur tests do taki main better gap analysis de sakun.';
+    }
+
+    return [
+      'Aapki current weak topics ye hain:',
+      ...formatBulletLines(ctx.weak_topics.slice(0, 4).map((topic) => `${topic.topic} - ${topic.accuracy}% accuracy (${topic.priority} priority)`)),
+      'Inme se top 1-2 topics ko pehle revise karo, fir mini test ya practice questions do.',
+    ].join('\n');
+  }
+
+  if (/(study plan|plan|schedule|routine|padhna chahiye|kya padhna|next|recommend)/.test(msg)) {
+    const planLines = [];
+
+    if (ctx.study_plan.length > 0) {
+      planLines.push('Aapke liye best next steps:');
+      planLines.push(...formatBulletLines(ctx.study_plan.slice(0, 4).map((item) => `${item.day}: ${item.focus} - ${item.activity} (${item.duration})`)));
+    }
+
+    if (ctx.next_modules.length > 0) {
+      const nextModule = ctx.next_modules[0];
+      planLines.push(`Sabse pehle "${nextModule.module_name}" par kaam karo. Reason: ${nextModule.reason}.`);
+    }
+
+    if (planLines.length > 0) {
+      return planLines.join('\n');
+    }
+  }
+
+  if (/(performance|score|result|progress|analysis|kaisa hai|kaisi hai)/.test(msg)) {
+    const perfLines = [];
+
+    if (ctx.total_tests > 0) {
+      perfLines.push(`Overall aapne ${ctx.total_tests} tests diye hain aur average score ${ctx.avg_score}% hai.`);
+    } else {
+      perfLines.push('Abhi tak koi test attempt nahi hua, isliye performance trend available nahi hai.');
+    }
+
+    if (ctx.subjects.length > 0) {
+      perfLines.push('Subject-wise snapshot:');
+      perfLines.push(...formatBulletLines(ctx.subjects.slice(0, 3).map((subject) => `${subject.subject} - ${subject.avg_score}% avg (${subject.trend})`)));
+    }
+
+    if (ctx.sessions_week > 0 || ctx.avg_daily_mins > 0) {
+      perfLines.push(`Is week ${ctx.sessions_week} study sessions hue aur average ${ctx.avg_daily_mins} mins/day raha.`);
+    }
+
+    return perfLines.join('\n');
+  }
+
+  if (/(motivate|motivation|demotivate|tired|stress|give up)/.test(msg)) {
+    const topic = ctx.weak_topics[0]?.topic;
+    const moduleName = ctx.next_modules[0]?.module_name;
+    return [
+      'Aapka progress slow ho sakta hai, but stuck hona normal hai.',
+      topic ? `Aaj bas ek kaam karo: ${topic} ko 45 minutes revise karo.` : 'Aaj bas ek focused 45 minute session complete karo.',
+      moduleName ? `Uske baad "${moduleName}" ka next step complete karo.` : 'Fir ek short practice test de do.',
+      'Consistency perfect hone se zyada important hai.',
+    ].join('\n');
+  }
+
+  const summaryLines = [];
+
+  if (ctx.total_tests > 0) {
+    summaryLines.push(`Aapka current average ${ctx.avg_score}% hai across ${ctx.total_tests} tests.`);
+  } else {
+    summaryLines.push('Abhi tak enough test data nahi hai for deep analysis.');
+  }
+
+  if (ctx.weak_topics.length > 0) {
+    summaryLines.push(`Sabse important focus area: ${ctx.weak_topics[0].topic} (${ctx.weak_topics[0].accuracy}% accuracy).`);
+  }
+
+  if (ctx.next_modules.length > 0) {
+    summaryLines.push(`Next recommended module: ${ctx.next_modules[0].module_name} - ${ctx.next_modules[0].reason}.`);
+  }
+
+  if (summaryLines.length === 0) {
+    summaryLines.push('Thoda aur data aane do, phir main better recommendations de paunga.');
+  }
+
+  summaryLines.push('Agar chaho to mujhse study plan, weak topics, ya performance analysis directly pooch sakte ho.');
+  return summaryLines.join('\n');
 }
 
 router.post('/chat', verifyToken, async (req, res) => {
@@ -389,7 +572,7 @@ router.post('/chat', verifyToken, async (req, res) => {
       ragChunks = await searchChunks({
         user_id: req.user.id,
         query: message,
-        limit: 4,
+        limit: MAX_RAG_CHUNKS,
         threshold: 0.3,
       });
     } catch (ragErr) {
@@ -401,7 +584,7 @@ router.post('/chat', verifyToken, async (req, res) => {
       response = await ollamaChatResponse(message, ctx, ragChunks);
     } catch (ollamaErr) {
       console.error('Ollama unavailable:', ollamaErr.message);
-      response = chatbotFallback(message);
+      response = buildOfflineChatResponse(message, ctx, ragChunks);
     }
 
     res.json({ response });
