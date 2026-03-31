@@ -56,7 +56,7 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
+      <Navbar hideGuestCta />
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center space-y-2">

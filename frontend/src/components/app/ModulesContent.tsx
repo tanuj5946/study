@@ -5,13 +5,17 @@ import { getUnlocks } from "@/lib/api";
 import { AlertTriangle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import {
-  BookOpen, Clock, ChevronRight, CheckCircle2, Circle, Loader2,
-  ArrowLeft, FileText, StickyNote, BarChart3, Lock,
+  BookOpen, ChevronRight, CheckCircle2, Circle, Loader2,
+  ArrowLeft, FileText, StickyNote, BarChart3, Lock, Bot, Send,
   Link as LinkIcon,
 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { getSubjects, getModules, getNotes, type Subject, type Module, type Note } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  getSubjects, getModules, getNotes, markNoteRead, sendChatMessage, updateNoteProgress,
+  type Subject, type Module, type Note,
+} from "@/lib/api";
 
 /* ── Types ──────────────────────────────────────────────── */
 
@@ -26,8 +30,6 @@ const diffVariant = (d: Difficulty): "secondary" | "default" | "destructive" => 
     case "Hard":   return "destructive";
   }
 };
-
-const formatHours = (h: number) => h === 1 ? "1h" : `${h}h`;
 
 /* ── Loading spinner ────────────────────────────────────── */
 
@@ -116,16 +118,17 @@ function ModulesList({ subject, onSelect, onBack }: {
   onBack: () => void;
 }) {
   const [modules, setModules]           = useState<Module[]>(subject.modules ?? []);
-  const [loading, setLoading]           = useState(!subject.modules?.length);
+  const [loading, setLoading]           = useState(true);
   const [unlockedIds, setUnlockedIds]   = useState<number[]>([]);
   const [flaggedIds, setFlaggedIds]     = useState<number[]>([]);
   const [miniTestModule, setMiniTestModule] = useState<Module | null>(null);
 
   useEffect(() => {
-    if (!subject.modules?.length) {
-      getModules(subject.id).then(setModules).finally(() => setLoading(false));
-    }
-    // fetch unlock status
+    setLoading(true);
+    getModules(subject.id)
+      .then(setModules)
+      .finally(() => setLoading(false));
+
     getUnlocks().then(({ unlocked_ids, flagged_ids }) => {
       setUnlockedIds(unlocked_ids);
       setFlaggedIds(flagged_ids);
@@ -177,6 +180,10 @@ function ModulesList({ subject, onSelect, onBack }: {
         {modules.map((mod, i) => {
           const unlocked = isUnlocked(mod, i);
           const flagged  = isFlagged(mod);
+          const notesDone = Boolean(mod.notes_done);
+          const notesProgress = typeof mod.notes_total === "number" && mod.notes_total > 0
+            ? `${mod.notes_completed ?? 0}/${mod.notes_total} notes complete`
+            : null;
           return (
             <button
               key={mod.id}
@@ -189,7 +196,9 @@ function ModulesList({ subject, onSelect, onBack }: {
                 {i + 1}
               </div>
               <div className="mt-0.5 shrink-0">
-                {unlocked
+                {notesDone
+                  ? <CheckCircle2 size={16} className="text-primary" />
+                  : unlocked
                   ? <Circle size={16} className="text-muted-foreground" />
                   : <Lock size={16} className="text-muted-foreground" />}
               </div>
@@ -201,6 +210,11 @@ function ModulesList({ subject, onSelect, onBack }: {
                   <Badge variant={diffVariant(mod.difficulty as Difficulty)} className="text-[10px] px-2 py-0">
                     {mod.difficulty}
                   </Badge>
+                  {notesDone && (
+                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                      done
+                    </span>
+                  )}
                   {flagged && (
                     <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
                       <AlertTriangle size={10} /> needs review
@@ -210,13 +224,13 @@ function ModulesList({ subject, onSelect, onBack }: {
                     <span className="text-[10px] text-muted-foreground italic">mini test required</span>
                   )}
                 </div>
+                {notesProgress && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {notesProgress}
+                  </p>
+                )}
               </div>
-              <div className="flex items-center gap-4 shrink-0">
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock size={12} /> {formatHours(mod.estimated_hours)}
-                </span>
-                <ChevronRight size={14} className={unlocked ? "text-muted-foreground group-hover:text-primary transition-colors" : "text-muted-foreground/40"} />
-              </div>
+              <ChevronRight size={14} className={unlocked ? "text-muted-foreground group-hover:text-primary transition-colors shrink-0" : "text-muted-foreground/40 shrink-0"} />
             </button>
           );
         })}
@@ -245,8 +259,23 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
   const [notes, setNotes]       = useState<Note[]>([]);
   const [selected, setSelected] = useState<Note | null>(null);
   const [loading, setLoading]   = useState(true);
+  const [mode, setMode]         = useState<"read" | "ai">("read");
+  const [messages, setMessages] = useState<{ role: "user" | "bot"; text: string }[]>([]);
+  const [prompt, setPrompt]     = useState("");
+  const [sending, setSending]   = useState(false);
+  const [savingProgress, setSavingProgress] = useState(false);
+
+  const syncNoteState = (noteId: number, updates: Partial<Note>) => {
+    setNotes((prev) => prev.map((note) => (
+      note.id === noteId ? { ...note, ...updates } : note
+    )));
+    setSelected((prev) => (
+      prev?.id === noteId ? { ...prev, ...updates } : prev
+    ));
+  };
 
   useEffect(() => {
+    setLoading(true);
     getNotes(moduleId)
       .then(data => {
         setNotes(data);
@@ -255,11 +284,102 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
       .finally(() => setLoading(false));
   }, [moduleId]);
 
+  useEffect(() => {
+    if (!selected) {
+      setMessages([]);
+      return;
+    }
+
+    setMode("read");
+    setPrompt("");
+    setMessages([
+      {
+        role: "bot",
+        text: `Ask me anything about "${selected.title}". I can summarize it, explain tough parts, or quiz you on it.`,
+      },
+    ]);
+  }, [selected?.id]);
+
+  useEffect(() => {
+    if (!selected) return;
+
+    markNoteRead(selected.id)
+      .then(({ progress }) => {
+        syncNoteState(selected.id, {
+          last_read_at: progress.last_read_at,
+          completed: progress.completed,
+          completed_at: progress.completed_at,
+        });
+      })
+      .catch(() => {});
+  }, [selected?.id]);
+
   if (loading) return <Spinner />;
 
   if (!notes.length) return (
     <p className="text-sm text-muted-foreground">No notes available for this module.</p>
   );
+
+  const currentNote = selected ?? notes[0];
+  const completedCount = notes.filter((note) => note.completed).length;
+  const readCount = notes.filter((note) => Boolean(note.last_read_at)).length;
+  const moduleCompleted = notes.length > 0 && completedCount === notes.length;
+
+  const buildScopedPrompt = (question: string) => {
+    const noteContent = currentNote.content.slice(0, 6000);
+
+    return `Current note title: ${currentNote.title}
+Current note content:
+${noteContent}
+
+Student request: ${question}`;
+  };
+
+  const sendNotePrompt = async (rawPrompt: string) => {
+    const trimmed = rawPrompt.trim();
+    if (!trimmed || sending) return;
+
+    setMode("ai");
+    setPrompt("");
+    setMessages(prev => [...prev, { role: "user", text: trimmed }]);
+    setSending(true);
+
+    try {
+      const { response } = await sendChatMessage(buildScopedPrompt(trimmed));
+      setMessages(prev => [...prev, { role: "bot", text: response }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        role: "bot",
+        text: "AI answer abhi nahi aa paya. Thodi der baad phir try karo.",
+      }]);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const quickPrompts = [
+    "Summarize this note in simple bullet points.",
+    "Explain this note in very simple language.",
+    "Make 3 quick revision questions from this note.",
+  ];
+
+  const handleToggleCompleted = async () => {
+    if (!currentNote || savingProgress) return;
+
+    const nextCompleted = !currentNote.completed;
+    setSavingProgress(true);
+
+    try {
+      const { progress } = await updateNoteProgress(currentNote.id, nextCompleted);
+      syncNoteState(currentNote.id, {
+        last_read_at: progress.last_read_at,
+        completed: progress.completed,
+        completed_at: progress.completed_at,
+      });
+    } finally {
+      setSavingProgress(false);
+    }
+  };
 
   return (
     <div className="flex gap-4">
@@ -275,27 +395,148 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
                   ? "bg-primary/10 text-primary font-medium"
                   : "text-muted-foreground hover:bg-secondary"}`}
             >
-              <StickyNote size={12} className="shrink-0" />
-              <span className="line-clamp-2">{n.title}</span>
+              {n.completed
+                ? <CheckCircle2 size={12} className="shrink-0 text-primary" />
+                : <StickyNote size={12} className="shrink-0" />}
+              <div className="min-w-0 flex-1">
+                <span className="line-clamp-2 block">{n.title}</span>
+                <span className="mt-0.5 block text-[10px] opacity-75">
+                  {n.completed ? "Completed" : n.last_read_at ? "Read" : "Unread"}
+                </span>
+              </div>
             </button>
           ))}
         </div>
       )}
 
       {/* content */}
-      {selected && (
+      {currentNote && (
         <div className="flex-1 min-w-0">
-          {notes.length > 1 && (
-            <h4 className="text-sm font-semibold text-foreground mb-3">{selected.title}</h4>
-          )}
-          <div className="prose prose-sm max-w-none dark:prose-invert
-            prose-headings:font-semibold prose-headings:text-foreground
-            prose-p:text-muted-foreground prose-p:leading-relaxed
-            prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded
-            prose-pre:bg-secondary prose-pre:border prose-pre:border-border
-            prose-strong:text-foreground prose-a:text-primary prose-li:text-muted-foreground">
-            <ReactMarkdown>{selected.content}</ReactMarkdown>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-semibold text-foreground">{currentNote.title}</h4>
+              {moduleCompleted && (
+                <p className="text-xs text-primary mt-1 font-medium">
+                  Module completed
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                {completedCount}/{notes.length} completed · {readCount}/{notes.length} read
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={currentNote.completed ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => void handleToggleCompleted()}
+                disabled={savingProgress}
+                className="gap-2"
+              >
+                {currentNote.completed ? <CheckCircle2 size={14} /> : <Circle size={14} />}
+                {currentNote.completed ? "Completed" : "Mark Complete"}
+              </Button>
+              <div className="inline-flex rounded-lg border border-border bg-secondary/30 p-1">
+                <button
+                  onClick={() => setMode("read")}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    mode === "read"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Read Note
+                </button>
+                <button
+                  onClick={() => setMode("ai")}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    mode === "ai"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Ask AI
+                </button>
+              </div>
+            </div>
           </div>
+
+          {mode === "read" ? (
+            <div className="prose prose-sm max-w-none dark:prose-invert
+              prose-headings:font-semibold prose-headings:text-foreground
+              prose-p:text-muted-foreground prose-p:leading-relaxed
+              prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded
+              prose-pre:bg-secondary prose-pre:border prose-pre:border-border
+              prose-strong:text-foreground prose-a:text-primary prose-li:text-muted-foreground">
+              <ReactMarkdown>{currentNote.content}</ReactMarkdown>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-background p-4">
+              <div className="flex flex-wrap gap-2 mb-4">
+                {quickPrompts.map((quickPrompt) => (
+                  <button
+                    key={quickPrompt}
+                    onClick={() => void sendNotePrompt(quickPrompt)}
+                    className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                  >
+                    {quickPrompt}
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                {messages.map((message, index) => (
+                  <div
+                    key={`${message.role}-${index}`}
+                    className={`flex items-start gap-3 ${message.role === "user" ? "justify-end" : ""}`}
+                  >
+                    {message.role === "bot" && (
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Bot size={15} className="text-primary" />
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
+                        message.role === "user"
+                          ? "bg-primary text-primary-foreground rounded-tr-sm"
+                          : "bg-secondary text-foreground rounded-tl-sm"
+                      }`}
+                    >
+                      {message.text}
+                    </div>
+                  </div>
+                ))}
+
+                {sending && (
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Bot size={15} className="text-primary" />
+                    </div>
+                    <div className="rounded-2xl rounded-tl-sm bg-secondary px-4 py-3 text-sm text-muted-foreground flex items-center gap-2">
+                      <Loader2 size={14} className="animate-spin" />
+                      Thinking...
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <Input
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && void sendNotePrompt(prompt)}
+                  placeholder="Ask about this note..."
+                  disabled={sending}
+                />
+                <Button
+                  onClick={() => void sendNotePrompt(prompt)}
+                  disabled={sending || !prompt.trim()}
+                  size="icon"
+                >
+                  <Send size={15} />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -332,10 +573,9 @@ function ModuleDetail({ module, subject, onBack, onBackToSubjects }: {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         {[
           { icon: FileText,  label: "Difficulty",  value: module.difficulty },
-          { icon: Clock,     label: "Est. Time",   value: formatHours(module.estimated_hours) },
           { icon: BarChart3, label: "Module ID",   value: `#${module.id}` },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-border bg-card p-4 shadow-card">

@@ -2,7 +2,8 @@
   "name": "studysync-backend",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "sync:rag": "node scripts/syncRagNotes.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.2",

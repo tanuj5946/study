@@ -6,7 +6,11 @@ import { useAuth } from "@/hooks/useAuth";
 
 const tabs = ["Platform", "Modules", "Insights"];
 
-export function Navbar() {
+type NavbarProps = {
+  hideGuestCta?: boolean;
+};
+
+export function Navbar({ hideGuestCta = false }: NavbarProps) {
   const [active, setActive] = useState("Platform");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
@@ -78,13 +82,14 @@ export function Navbar() {
                 <LogOut size={16} />
               </Button>
             </>
-          ) : (
+          ) : !hideGuestCta ? (
             <Link to="/auth">
               <Button size="sm" className="rounded-full px-5">
                 Get started
               </Button>
             </Link>
-          )}
+          ) : null
+          }
         </div>
 
         {/* Mobile toggle */}
@@ -137,11 +142,12 @@ export function Navbar() {
                   <LogOut size={16} className="mr-2" /> Sign out
                 </Button>
               </>
-            ) : (
+            ) : !hideGuestCta ? (
               <Link to="/auth" onClick={() => setMobileOpen(false)}>
                 <Button className="w-full rounded-full">Get started</Button>
               </Link>
-            )}
+            ) : null
+            }
           </div>
         </div>
       )}

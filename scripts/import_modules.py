@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import psycopg2
 from psycopg2.extras import Json
 from dotenv import load_dotenv
@@ -10,6 +11,13 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
+
+
+def natural_sort_key(value):
+    return [
+        int(part) if part.isdigit() else part.lower()
+        for part in re.split(r"(\d+)", value)
+    ]
 
 
 def format_subject_name(folder_name):
@@ -71,7 +79,7 @@ def replace_notes(conn, module_id, notes_path):
     with conn.cursor() as cur:
         cur.execute("DELETE FROM notes WHERE module_id = %s", (module_id,))
 
-    for filename in os.listdir(notes_path):
+    for filename in sorted(os.listdir(notes_path), key=natural_sort_key):
         if filename.endswith(".md"):
             with open(os.path.join(notes_path, filename), "r", encoding="utf-8") as f:
                 content = f.read()

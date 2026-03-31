@@ -138,7 +138,7 @@ export function DashboardContent() {
 
     data.recommendations.nextModules.forEach((module) => {
       if (!nextModuleLookup.has(module.subject_name)) {
-        nextModuleLookup.set(module.subject_name, module.module_name);
+        nextModuleLookup.set(module.subject_name, `${module.action} ${module.module_name}`);
       }
     });
 
@@ -155,7 +155,10 @@ export function DashboardContent() {
         avgScore,
         trend: recommendation?.trend ?? "stable",
         status,
-        nextModule: nextModuleLookup.get(subject.name) ?? "No recommendation yet",
+        nextModule: nextModuleLookup.get(subject.name)
+          ?? (subject.modules?.length && subject.modules.every((module) => module.notes_done)
+            ? "All notes completed"
+            : "No recommendation yet"),
       };
     });
 
@@ -167,7 +170,7 @@ export function DashboardContent() {
       })),
       ...data.recommendations.nextModules.slice(0, 2).map((module) => ({
         priority: module.flagged ? "High" as const : "Medium" as const,
-        action: `Start ${module.module_name}`,
+        action: `${module.action} ${module.module_name}`,
         detail: `${module.subject_name} · ${module.reason}`,
       })),
     ];

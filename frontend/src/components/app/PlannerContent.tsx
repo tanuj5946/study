@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, startOfMonth, endOfMonth, isSameDay, isAfter } from "date-fns";
+import { addMonths, format, startOfDay, startOfMonth, endOfMonth, isSameDay, isAfter } from "date-fns";
 import { Plus, Clock, Trash2, CalendarDays, CheckCircle2, Circle, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Calendar } from "@/components/ui/calendar";
@@ -61,10 +61,18 @@ export function PlannerContent() {
 
   const monthStart = format(startOfMonth(month), "yyyy-MM-dd");
   const monthEnd   = format(endOfMonth(month),   "yyyy-MM-dd");
+  const upcomingStart = format(startOfDay(new Date()), "yyyy-MM-dd");
+  const upcomingEnd = format(endOfMonth(addMonths(new Date(), 12)), "yyyy-MM-dd");
 
   const { data: sessions = [], isLoading } = useQuery({
     queryKey: ["study-sessions", monthStart, monthEnd],
     queryFn: () => getSessions(monthStart, monthEnd),
+    enabled: !!user,
+  });
+
+  const { data: upcomingSessions = [] } = useQuery({
+    queryKey: ["study-sessions-upcoming", upcomingStart, upcomingEnd],
+    queryFn: () => getSessions(upcomingStart, upcomingEnd),
     enabled: !!user,
   });
 
@@ -206,12 +214,12 @@ const datesWithSessions = useMemo(
 );
 
 const upcoming = useMemo(
-  () => sessions.filter(s => {
+  () => upcomingSessions.filter(s => {
     const d = getSessionDateValue(s);
     if (!d || s.completed) return false;
-    return isAfter(new Date(d + "T00:00:00"), new Date());
+    return isAfter(new Date(`${d}T00:00:00`), startOfDay(new Date()));
   }).slice(0, 5),
-  [sessions]
+  [upcomingSessions]
 );
 
   const formatTime = (t: string | null) => {

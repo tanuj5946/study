@@ -133,7 +133,7 @@ router.get('/subject/:subjectId', verifyToken, async (req, res) => {
 
     if (difficulty === 'mixed') {
       const { rows: result } = await db.query(`
-        SELECT id, topic, difficulty, question, options, correct_answer
+        SELECT id, module_id, topic, difficulty, question, options, correct_answer
         FROM questions
         WHERE module_id = ANY($1)
         ORDER BY RANDOM()
@@ -142,7 +142,7 @@ router.get('/subject/:subjectId', verifyToken, async (req, res) => {
       rows = result;
     } else {
       const { rows: result } = await db.query(`
-        SELECT id, topic, difficulty, question, options, correct_answer
+        SELECT id, module_id, topic, difficulty, question, options, correct_answer
         FROM questions
         WHERE module_id = ANY($1)
           AND LOWER(difficulty) = $2

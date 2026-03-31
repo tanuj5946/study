@@ -67,6 +67,15 @@ export const getRecommendations = () =>
 // notes
 export const getNotes = (moduleId: number) =>
   request<Note[]>(`/api/notes/${moduleId}`);
+export const markNoteRead = (noteId: number) =>
+  request<{ success: boolean; progress: NoteProgress }>(`/api/notes/${noteId}/read`, {
+    method: "POST",
+  });
+export const updateNoteProgress = (noteId: number, completed: boolean) =>
+  request<{ success: boolean; progress: NoteProgress }>(`/api/notes/${noteId}/progress`, {
+    method: "PATCH",
+    body: JSON.stringify({ completed }),
+  });
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -92,10 +101,14 @@ export interface Module {
   module_name: string;
   difficulty: "Easy" | "Medium" | "Hard";
   estimated_hours: number;
+  notes_total?: number;
+  notes_completed?: number;
+  notes_done?: boolean;
   notes?: Note[];
 }
 export interface Question {
   id: number;
+  module_id?: number;
   topic: string;
   difficulty: "Easy" | "Medium" | "Hard";
   question: string;
@@ -128,6 +141,16 @@ export interface Note {
   id: number;
   title: string;
   content: string;
+  last_read_at?: string | null;
+  completed?: boolean;
+  completed_at?: string | null;
+}
+
+export interface NoteProgress {
+  note_id: number;
+  last_read_at: string | null;
+  completed: boolean;
+  completed_at: string | null;
 }
 
 // planner
@@ -371,7 +394,8 @@ export interface RecommendationData {
   }[];
   nextModules: {
     id: number; module_name: string; subject_name: string;
-    difficulty: string; flagged: boolean; reason: string;
+    difficulty: string; flagged: boolean; action: string; reason: string;
+    notes_total?: number; notes_completed?: number;
   }[];
   predictions: {
     topic: string; current_accuracy: number;
