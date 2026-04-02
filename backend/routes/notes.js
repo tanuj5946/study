@@ -24,13 +24,26 @@ function ensureNoteProgressTable() {
   return initPromise;
 }
 
-function extractJsonObject(text) {
+function extractJsonValue(text) {
   if (!text) return null;
 
   const fencedMatch = text.match(/```json\s*([\s\S]*?)```/i);
   const candidate = fencedMatch ? fencedMatch[1] : text;
-  const start = candidate.indexOf('{');
-  const end = candidate.lastIndexOf('}');
+  const objectStart = candidate.indexOf('{');
+  const objectEnd = candidate.lastIndexOf('}');
+  const arrayStart = candidate.indexOf('[');
+  const arrayEnd = candidate.lastIndexOf(']');
+
+  let start = -1;
+  let end = -1;
+
+  if (arrayStart !== -1 && arrayEnd > arrayStart && (objectStart === -1 || arrayStart < objectStart)) {
+    start = arrayStart;
+    end = arrayEnd;
+  } else if (objectStart !== -1 && objectEnd > objectStart) {
+    start = objectStart;
+    end = objectEnd;
+  }
 
   if (start === -1 || end === -1 || end <= start) {
     return null;
@@ -41,6 +54,84 @@ function extractJsonObject(text) {
   } catch {
     return null;
   }
+}
+
+function splitNoteIntoSections(content) {
+  const source = String(content || '').replace(/\r\n/g, '\n').trim();
+  if (!source) {
+    return [];
+  }
+
+  const headingRegex = /(^|\n)(#{1,6}\s+.+)(?:\n|$)/g;
+  const headingMatches = Array.from(source.matchAll(headingRegex));
+
+  if (headingMatches.length === 0) {
+    return source
+      .split(/\n{2,}/)
+      .map((section) => section.trim())
+      .filter((section) => section.length > 60)
+      .slice(0, 5)
+      .map((section, index) => ({
+        section_index: index,
+        heading: `Section ${index + 1}`,
+        content: section,
+      }));
+  }
+
+  const sections = headingMatches.map((match, index) => {
+    const headingLine = match[2].trim();
+    const start = match.index + match[0].length;
+    const end = index + 1 < headingMatches.length
+      ? headingMatches[index + 1].index
+      : source.length;
+    const chunk = source.slice(start, end).trim();
+
+    return {
+      section_index: index,
+      heading: headingLine.replace(/^#{1,6}\s*/, '').trim(),
+      content: chunk,
+    };
+  });
+
+  return sections
+    .filter((section) => section.content.replace(/^#{1,6}\s+/gm, '').trim().length > 60)
+    .slice(0, 5);
+}
+
+function stripMarkdown(text) {
+  return String(text || '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/[*_>~-]/g, ' ')
+    .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildFallbackInlineChecks(note) {
+  const sections = splitNoteIntoSections(note.content);
+
+  return sections.map((section, index) => {
+    const clean = stripMarkdown(section.content);
+    const sentences = splitIntoSentences(clean);
+    const mainIdea = sentences[0] || clean.slice(0, 140);
+    const secondary = sentences[1] || `A supporting point from ${section.heading}`;
+
+    return {
+      section_index: index,
+      heading: section.heading,
+      question: `Which option best captures the main idea of "${section.heading}"?`,
+      options: [
+        mainIdea,
+        secondary,
+        `An unrelated point from another topic`,
+        `A practical task not discussed in this section`,
+      ].map((option) => option.slice(0, 140)),
+      correct_answer: mainIdea.slice(0, 140),
+      explanation: `This section mainly focuses on: ${mainIdea.slice(0, 180)}.`,
+    };
+  });
 }
 
 function splitIntoSentences(text) {
@@ -134,7 +225,7 @@ ${note.content.slice(0, 7000)}`;
     }
   );
 
-  const parsed = extractJsonObject(response);
+  const parsed = extractJsonValue(response);
   if (!parsed) {
     throw new Error('Could not parse revision pack JSON');
   }
@@ -159,6 +250,82 @@ ${note.content.slice(0, 7000)}`;
       ? parsed.tutorTips.slice(0, 3).map((tip) => String(tip).trim()).filter(Boolean)
       : [],
   };
+}
+
+async function generateInlineChecks(note) {
+  const sections = splitNoteIntoSections(note.content);
+  if (sections.length === 0) {
+    return [];
+  }
+
+  const fallbackChecks = buildFallbackInlineChecks(note);
+
+  const sectionPayload = sections.map((section) => ({
+    section_index: section.section_index,
+    heading: section.heading,
+    content: stripMarkdown(section.content).slice(0, 700),
+  }));
+
+  const response = await generateAnswer(
+    [
+      {
+        role: 'system',
+        content: `You create one tiny multiple-choice knowledge check per note section.
+Return ONLY valid JSON array.
+Each item must be:
+{
+  "section_index": number,
+  "heading": "section heading",
+  "question": "one short MCQ question",
+  "options": ["A", "B", "C", "D"],
+  "correct_answer": "exactly one of the options",
+  "explanation": "one short explanation"
+}
+Rules:
+- 4 options exactly.
+- Keep wording simple.
+- Correct answer must match one option exactly.
+- Questions should check understanding, not trivia.
+- Use only the provided section content.`,
+      },
+      {
+        role: 'user',
+        content: `Note title: ${note.title}
+Sections:
+${JSON.stringify(sectionPayload)}`,
+      },
+    ],
+    {
+      ollamaOptions: {
+        temperature: 0.1,
+        top_p: 0.8,
+        num_predict: 800,
+      },
+    }
+  );
+
+  const parsed = extractJsonValue(response);
+  if (!Array.isArray(parsed)) {
+    throw new Error('Could not parse inline checks JSON');
+  }
+
+  return sections.map((section, index) => {
+    const item = parsed.find((entry) => Number(entry.section_index) === section.section_index) || {};
+    const options = Array.isArray(item.options)
+      ? item.options.map((option) => String(option).trim()).filter(Boolean).slice(0, 4)
+      : [];
+
+    const fallback = fallbackChecks[index];
+
+    return {
+      section_index: section.section_index,
+      heading: String(item.heading || fallback?.heading || section.heading).trim(),
+      question: String(item.question || fallback?.question || '').trim(),
+      options: options.length === 4 ? options : fallback?.options || [],
+      correct_answer: String(item.correct_answer || fallback?.correct_answer || '').trim(),
+      explanation: String(item.explanation || fallback?.explanation || '').trim(),
+    };
+  });
 }
 
 // POST /api/notes/:noteId/read
@@ -273,6 +440,39 @@ router.get('/:noteId/revision-pack', verifyToken, async (req, res) => {
     }
 
     res.json(pack);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/notes/:noteId/inline-checks
+router.get('/:noteId/inline-checks', verifyToken, async (req, res) => {
+  try {
+    const noteId = Number.parseInt(req.params.noteId, 10);
+    if (Number.isNaN(noteId)) {
+      return res.status(400).json({ error: 'Invalid note id' });
+    }
+
+    const { rows } = await db.query(
+      `SELECT n.id, n.title, n.content
+       FROM notes n
+       WHERE n.id = $1`,
+      [noteId]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    let checks;
+    try {
+      checks = await generateInlineChecks(rows[0]);
+    } catch (error) {
+      console.warn('Inline checks generation failed, using fallback:', error.message);
+      checks = buildFallbackInlineChecks(rows[0]);
+    }
+
+    res.json({ checks });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

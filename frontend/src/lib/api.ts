@@ -78,6 +78,8 @@ export const updateNoteProgress = (noteId: number, completed: boolean) =>
   });
 export const getNoteRevisionPack = (noteId: number) =>
   request<NoteRevisionPack>(`/api/notes/${noteId}/revision-pack`);
+export const getNoteInlineChecks = (noteId: number) =>
+  request<{ checks: NoteInlineCheck[] }>(`/api/notes/${noteId}/inline-checks`);
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -168,6 +170,15 @@ export interface NoteRevisionPack {
     answer: string;
   }[];
   tutorTips: string[];
+}
+
+export interface NoteInlineCheck {
+  section_index: number;
+  heading: string;
+  question: string;
+  options: string[];
+  correct_answer: string;
+  explanation: string;
 }
 
 // planner
@@ -365,6 +376,22 @@ export interface AnalyticsSummary {
   bySubject: { subject_name: string; total_tests: number; avg_score: string }[];
   topicMastery: { topic: string; accuracy: string; attempts: number }[];
   trend: { date: string; avg_score: string; tests_taken: number }[];
+  masteryMap: {
+    subject_id: number;
+    subject_name: string;
+    counts: {
+      not_started: number;
+      learning: number;
+      shaky: number;
+      strong: number;
+    };
+    topics: {
+      topic: string;
+      attempts: number;
+      accuracy: number;
+      status: "not_started" | "learning" | "shaky" | "strong";
+    }[];
+  }[];
 }
 
 export interface ResultRow {

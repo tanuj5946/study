@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Trophy, Target, TrendingUp, XCircle, CheckCircle2,
-  Download, ChevronRight, ArrowLeft, FileText,
+  Download, ChevronRight, ArrowLeft, FileText, Layers3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -187,7 +187,7 @@ function ResultsList({ onView }: { onView: (id: number) => void }) {
 
   if (!summary) return null;
 
-  const { summary: s, bySubject, topicMastery, trend } = summary;
+  const { summary: s, bySubject, topicMastery, trend, masteryMap } = summary;
 
   // chart data
   const trendData = trend.map(t => ({
@@ -291,6 +291,69 @@ function ResultsList({ onView }: { onView: (id: number) => void }) {
                   value={parseFloat(t.accuracy)}
                   className={`h-1.5 ${parseFloat(t.accuracy) < 50 ? "[&>div]:bg-destructive" : parseFloat(t.accuracy) < 75 ? "[&>div]:bg-amber-500" : "[&>div]:bg-green-500"}`}
                 />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {masteryMap.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Layers3 size={16} className="text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Mastery map by subject</h3>
+          </div>
+          <div className="space-y-4">
+            {masteryMap.map((subject) => (
+              <div key={subject.subject_id} className="rounded-lg border border-border p-4">
+                <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{subject.subject_name}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Topic-level view of what is untouched, in progress, shaky, or strong.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-medium text-slate-700">
+                      not started {subject.counts.not_started}
+                    </span>
+                    <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-medium text-blue-700">
+                      learning {subject.counts.learning}
+                    </span>
+                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-medium text-amber-700">
+                      shaky {subject.counts.shaky}
+                    </span>
+                    <span className="rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-medium text-green-700">
+                      strong {subject.counts.strong}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {subject.topics.map((topic) => {
+                    const tone =
+                      topic.status === "strong"
+                        ? "border-green-200 bg-green-50 text-green-700"
+                        : topic.status === "shaky"
+                        ? "border-amber-200 bg-amber-50 text-amber-700"
+                        : topic.status === "learning"
+                        ? "border-blue-200 bg-blue-50 text-blue-700"
+                        : "border-slate-200 bg-slate-50 text-slate-700";
+
+                    return (
+                      <div
+                        key={`${subject.subject_id}-${topic.topic}`}
+                        className={`rounded-full border px-3 py-1.5 text-[11px] ${tone}`}
+                      >
+                        <span className="font-medium">{topic.topic}</span>
+                        <span className="ml-2 opacity-80">
+                          {topic.status.replace("_", " ")}
+                          {topic.attempts > 0 ? ` · ${topic.accuracy}%` : ""}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             ))}
           </div>

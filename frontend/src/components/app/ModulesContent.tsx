@@ -15,13 +15,49 @@ import { ChatMarkdown } from "@/components/ui/chat-markdown";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import {
-  getSubjects, getModules, getNotes, getNoteRevisionPack, markNoteRead, sendChatMessage, updateNoteProgress,
-  type Subject, type Module, type Note, type NoteRevisionPack,
+  getSubjects, getModules, getNotes, getNoteInlineChecks, getNoteRevisionPack, markNoteRead, sendChatMessage, updateNoteProgress,
+  type Subject, type Module, type Note, type NoteInlineCheck, type NoteRevisionPack,
 } from "@/lib/api";
 
 /* ── Types ──────────────────────────────────────────────── */
 
 type Difficulty = "Easy" | "Medium" | "Hard";
+
+function splitNoteIntoSections(content: string) {
+  const source = content.replace(/\r\n/g, "\n").trim();
+  if (!source) {
+    return [];
+  }
+
+  const headingRegex = /(^|\n)(#{1,6}\s+.+)(?:\n|$)/g;
+  const matches = Array.from(source.matchAll(headingRegex));
+
+  if (matches.length === 0) {
+    return source
+      .split(/\n{2,}/)
+      .map((section) => section.trim())
+      .filter((section) => section.length > 40)
+      .map((section, index) => ({
+        id: `section-${index}`,
+        heading: `Section ${index + 1}`,
+        content: section,
+      }));
+  }
+
+  return matches
+    .map((match, index) => {
+      const start = match.index! + match[0].length;
+      const end = index + 1 < matches.length ? matches[index + 1].index! : source.length;
+      const block = source.slice(start, end).trim();
+
+      return {
+        id: `section-${index}`,
+        heading: match[2].replace(/^#{1,6}\s*/, "").trim(),
+        content: block,
+      };
+    })
+    .filter((section) => section.content.length > 40);
+}
 
 /* ── Helpers ────────────────────────────────────────────── */
 
@@ -270,6 +306,10 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
   const [loadingRevisionPack, setLoadingRevisionPack] = useState(false);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
   const [selectedExcerpt, setSelectedExcerpt] = useState("");
+  const [inlineChecks, setInlineChecks] = useState<NoteInlineCheck[]>([]);
+  const [loadingInlineChecks, setLoadingInlineChecks] = useState(false);
+  const [inlineCheckAnswers, setInlineCheckAnswers] = useState<Record<number, string>>({});
+  const [revealedInlineChecks, setRevealedInlineChecks] = useState<Record<number, boolean>>({});
   const noteContentRef = useRef<HTMLDivElement | null>(null);
 
   const syncNoteState = (noteId: number, updates: Partial<Note>) => {
@@ -297,6 +337,9 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
       setRevisionPack(null);
       setFlippedCards({});
       setSelectedExcerpt("");
+      setInlineChecks([]);
+      setInlineCheckAnswers({});
+      setRevealedInlineChecks({});
       return;
     }
 
@@ -305,6 +348,9 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
     setRevisionPack(null);
     setFlippedCards({});
     setSelectedExcerpt("");
+    setInlineChecks([]);
+    setInlineCheckAnswers({});
+    setRevealedInlineChecks({});
     setMessages([
       {
         role: "bot",
@@ -328,6 +374,34 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
   }, [selected?.id]);
 
   useEffect(() => {
+    if (!selected) return;
+
+    let cancelled = false;
+    setLoadingInlineChecks(true);
+
+    getNoteInlineChecks(selected.id)
+      .then((response) => {
+        if (!cancelled) {
+          setInlineChecks(response.checks);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setInlineChecks([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingInlineChecks(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected?.id]);
+
+  useEffect(() => {
     if (mode !== "read" && selectedExcerpt) {
       clearSelectedExcerpt();
     }
@@ -345,6 +419,7 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
   const moduleCompleted = notes.length > 0 && completedCount === notes.length;
   const currentNoteIndex = notes.findIndex((note) => note.id === currentNote.id);
   const previousNote = currentNoteIndex > 0 ? notes[currentNoteIndex - 1] : null;
+  const noteSections = splitNoteIntoSections(currentNote.content);
 
   const buildScopedPrompt = (question: string, extraContext?: string) => {
     const noteContent = currentNote.content.slice(0, 6000);
@@ -444,6 +519,17 @@ Student request: ${question}`;
   const clearSelectedExcerpt = () => {
     window.getSelection()?.removeAllRanges();
     setSelectedExcerpt("");
+  };
+
+  const handleInlineCheckAnswer = (sectionIndex: number, selectedOption: string) => {
+    setInlineCheckAnswers((prev) => ({
+      ...prev,
+      [sectionIndex]: selectedOption,
+    }));
+    setRevealedInlineChecks((prev) => ({
+      ...prev,
+      [sectionIndex]: true,
+    }));
   };
 
   const handleTutorAction = async (instruction: string) => {
@@ -658,14 +744,78 @@ Tutor mode instructions:
                 ref={noteContentRef}
                 onMouseUp={handleTextSelection}
                 onKeyUp={handleTextSelection}
-                className="prose prose-sm max-w-none dark:prose-invert
-                  prose-headings:font-semibold prose-headings:text-foreground
-                  prose-p:text-muted-foreground prose-p:leading-relaxed
-                  prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded
-                  prose-pre:bg-secondary prose-pre:border prose-pre:border-border
-                  prose-strong:text-foreground prose-a:text-primary prose-li:text-muted-foreground"
+                className="space-y-5"
               >
-                <ReactMarkdown>{currentNote.content}</ReactMarkdown>
+                {noteSections.map((section, index) => {
+                  const inlineCheck = inlineChecks.find((item) => item.section_index === index);
+                  const chosenAnswer = inlineCheckAnswers[index];
+                  const revealed = Boolean(revealedInlineChecks[index]);
+                  const isCorrect = inlineCheck ? chosenAnswer === inlineCheck.correct_answer : false;
+
+                  return (
+                    <div key={section.id} className="space-y-4">
+                      <div
+                        className="prose prose-sm max-w-none dark:prose-invert
+                          prose-headings:font-semibold prose-headings:text-foreground
+                          prose-p:text-muted-foreground prose-p:leading-relaxed
+                          prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded
+                          prose-pre:bg-secondary prose-pre:border prose-pre:border-border
+                          prose-strong:text-foreground prose-a:text-primary prose-li:text-muted-foreground"
+                      >
+                        <ReactMarkdown>{`## ${section.heading}\n\n${section.content}`}</ReactMarkdown>
+                      </div>
+
+                      {inlineCheck && (
+                        <div className="rounded-xl border border-border bg-secondary/20 p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Sparkles size={14} className="text-primary" />
+                            <h5 className="text-sm font-semibold text-foreground">Quick knowledge check</h5>
+                          </div>
+                          <p className="text-sm font-medium text-foreground mb-3">{inlineCheck.question}</p>
+                          <div className="space-y-2">
+                            {inlineCheck.options.map((option) => {
+                              const optionIsCorrect = option === inlineCheck.correct_answer;
+                              const optionIsChosen = chosenAnswer === option;
+                              const optionTone = revealed
+                                ? optionIsCorrect
+                                  ? "border-green-500 bg-green-50 text-green-700"
+                                  : optionIsChosen
+                                  ? "border-destructive bg-red-50 text-destructive"
+                                  : "border-border bg-background text-muted-foreground"
+                                : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-primary/5";
+
+                              return (
+                                <button
+                                  key={option}
+                                  onClick={() => handleInlineCheckAnswer(index, option)}
+                                  disabled={revealed}
+                                  className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors ${optionTone}`}
+                                >
+                                  {option}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {revealed && (
+                            <div className="mt-3 rounded-lg border border-border bg-card p-3">
+                              <p className={`text-xs font-semibold ${isCorrect ? "text-green-700" : "text-destructive"}`}>
+                                {isCorrect ? "Nice, that’s correct." : `Correct answer: ${inlineCheck.correct_answer}`}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">{inlineCheck.explanation}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {!inlineCheck && loadingInlineChecks && index < Math.min(noteSections.length, 4) && (
+                        <div className="rounded-xl border border-dashed border-border bg-secondary/10 px-4 py-3 text-xs text-muted-foreground flex items-center gap-2">
+                          <Loader2 size={12} className="animate-spin" />
+                          Preparing a quick check for this section...
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : mode === "revise" ? (

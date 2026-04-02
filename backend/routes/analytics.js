@@ -85,6 +85,22 @@ function buildWrongAnswerSupport(answer, relatedNotes) {
   };
 }
 
+function classifyMastery(attempts, accuracy) {
+  if (attempts === 0) {
+    return 'not_started';
+  }
+
+  if (accuracy >= 80 && attempts >= 2) {
+    return 'strong';
+  }
+
+  if (accuracy < 50) {
+    return 'shaky';
+  }
+
+  return 'learning';
+}
+
 // GET /api/analytics/summary — overall stats
 router.get('/summary', verifyToken, async (req, res) => {
   try {
@@ -133,7 +149,93 @@ router.get('/summary', verifyToken, async (req, res) => {
       LIMIT 30
     `, [user_id]);
 
-    res.json({ summary: summary[0], bySubject, topicMastery, trend });
+    const { rows: allTopics } = await db.query(`
+      SELECT
+        s.id AS subject_id,
+        s.name AS subject_name,
+        q.topic
+      FROM subjects s
+      JOIN modules m ON m.subject_id = s.id
+      JOIN questions q ON q.module_id = m.id
+      GROUP BY s.id, s.name, q.topic
+      ORDER BY s.name ASC, q.topic ASC
+    `);
+
+    const { rows: attemptedTopics } = await db.query(`
+      SELECT
+        s.id AS subject_id,
+        q.topic,
+        COUNT(*)::int AS attempts,
+        AVG(CASE WHEN aa.is_correct THEN 100 ELSE 0 END)::numeric(5,2) AS accuracy
+      FROM assessments a
+      JOIN assessment_answers aa ON aa.assessment_id = a.id
+      JOIN questions q ON q.id = aa.question_id
+      JOIN modules m ON m.id = q.module_id
+      JOIN subjects s ON s.id = m.subject_id
+      WHERE a.user_id = $1
+      GROUP BY s.id, q.topic
+    `, [user_id]);
+
+    const attemptedMap = new Map(
+      attemptedTopics.map((row) => [
+        `${row.subject_id}::${row.topic}`,
+        {
+          attempts: Number(row.attempts || 0),
+          accuracy: Number(row.accuracy || 0),
+        },
+      ])
+    );
+
+    const masteryMapBySubject = new Map();
+
+    for (const row of allTopics) {
+      const key = `${row.subject_id}::${row.topic}`;
+      const attempted = attemptedMap.get(key) || { attempts: 0, accuracy: 0 };
+      const status = classifyMastery(attempted.attempts, attempted.accuracy);
+
+      if (!masteryMapBySubject.has(row.subject_id)) {
+        masteryMapBySubject.set(row.subject_id, {
+          subject_id: row.subject_id,
+          subject_name: row.subject_name,
+          counts: {
+            not_started: 0,
+            learning: 0,
+            shaky: 0,
+            strong: 0,
+          },
+          topics: [],
+        });
+      }
+
+      const subjectEntry = masteryMapBySubject.get(row.subject_id);
+      subjectEntry.counts[status] += 1;
+      subjectEntry.topics.push({
+        topic: row.topic,
+        attempts: attempted.attempts,
+        accuracy: Number(attempted.accuracy.toFixed(2)),
+        status,
+      });
+    }
+
+    const masteryMap = Array.from(masteryMapBySubject.values()).map((subjectEntry) => ({
+      ...subjectEntry,
+      topics: subjectEntry.topics.sort((a, b) => {
+        const statusOrder = {
+          shaky: 0,
+          learning: 1,
+          not_started: 2,
+          strong: 3,
+        };
+
+        return (
+          statusOrder[a.status] - statusOrder[b.status] ||
+          a.accuracy - b.accuracy ||
+          a.topic.localeCompare(b.topic)
+        );
+      }),
+    }));
+
+    res.json({ summary: summary[0], bySubject, topicMastery, trend, masteryMap });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
