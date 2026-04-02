@@ -2,14 +2,15 @@ import { useState, useEffect, useRef } from "react";
 import {
   Brain, TrendingUp, BookOpen, Target, AlertTriangle,
   Send, Bot, User, Loader2, ChevronRight, Calendar,
-  BarChart3, Lightbulb, ArrowUp,
+  BarChart3, Lightbulb, ArrowUp, RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ReactMarkdown from "react-markdown";
+import { ChatMarkdown } from "@/components/ui/chat-markdown";
+import { CopyButton } from "@/components/ui/copy-button";
 import { getRecommendationsFull, sendChatMessage, type RecommendationData } from "@/lib/api";
 
 /* ── Chat message type ── */
@@ -21,16 +22,12 @@ interface Message {
 
 /* ── Markdown-like renderer ── */
 function ChatText({ text }: { text: string }) {
-  return (
-    <div className="text-sm leading-relaxed [&_h1]:mb-2 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:text-sm [&_h3]:font-semibold [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_li]:marker:text-muted-foreground [&_strong]:font-semibold">
-      <ReactMarkdown>{text}</ReactMarkdown>
-    </div>
-  );
+  return <ChatMarkdown text={text} />;
 }
 
 /* ── Recommendations tab ── */
 function RecommendationsTab({ data }: { data: RecommendationData }) {
-  const { weakTopics, subjectPerformance, nextModules, predictions, studyPlan, studyStats } = data;
+  const { weakTopics, subjectPerformance, nextModules, revisionQueue, predictions, studyPlan, studyStats } = data;
 
   const priorityColor = (p: string) =>
     p === "high" ? "text-destructive" : p === "medium" ? "text-amber-600" : "text-green-600";
@@ -142,6 +139,53 @@ function RecommendationsTab({ data }: { data: RecommendationData }) {
               <ChevronRight size={14} className="text-muted-foreground" />
             </div>
           ))}
+        </div>
+      )}
+
+      {revisionQueue.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <RotateCcw size={16} className="text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Revision queue</h3>
+          </div>
+          <div className="space-y-3">
+            {revisionQueue.map((item) => {
+              const overdue = item.overdue_hours > 0;
+              return (
+                <div key={`${item.topic}-${item.due_at}`} className="rounded-lg border border-border bg-secondary/20 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-foreground">{item.topic}</p>
+                        <Badge
+                          variant={item.priority === "high" ? "destructive" : item.priority === "medium" ? "default" : "secondary"}
+                          className="text-[10px] px-2 py-0"
+                        >
+                          {item.priority} priority
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {item.subject_name && item.module_name
+                          ? `${item.subject_name} · ${item.module_name}`
+                          : "Topic revision"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {item.reason} · Last accuracy {item.accuracy}% · Repeat every {item.interval_days} day{item.interval_days !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={`text-xs font-medium ${overdue ? "text-destructive" : "text-muted-foreground"}`}>
+                        {overdue ? `Due now · ${item.overdue_hours}h overdue` : "Upcoming revision"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        streak {item.streak}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -297,11 +341,25 @@ function ChatTab({ data }: { data: RecommendationData | null }) {
                 ? "bg-secondary text-foreground rounded-tl-sm"
                 : "bg-primary text-primary-foreground rounded-tr-sm"}`}>
               {m.role === "bot"
-                ? <ChatText text={m.text} />
+                ? <>
+                    <ChatText text={m.text} />
+                    <div className="mt-2 flex items-end justify-between gap-3">
+                      <p className="text-[10px] text-muted-foreground">
+                        {m.time}
+                      </p>
+                      <CopyButton
+                        text={m.text}
+                        label="Copy reply"
+                        className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                      />
+                    </div>
+                  </>
                 : <p className="text-sm">{m.text}</p>}
-              <p className={`text-[10px] mt-1 ${m.role === "bot" ? "text-muted-foreground" : "text-primary-foreground/70"}`}>
-                {m.time}
-              </p>
+              {m.role === "user" && (
+                <p className="text-[10px] mt-1 text-primary-foreground/70">
+                  {m.time}
+                </p>
+              )}
             </div>
           </div>
         ))}

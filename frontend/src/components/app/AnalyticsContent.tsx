@@ -455,9 +455,33 @@ function ResultDetail({ id, onBack }: { id: number; onBack: () => void }) {
                   ))}
                 </div>
                 {!a.is_correct && (
-                  <p className="text-xs text-destructive mt-2">
-                    Your answer: {a.selected_answer || "—"} · Correct: {a.correct_answer}
-                  </p>
+                  <div className="mt-3 space-y-3">
+                    <p className="text-xs text-destructive">
+                      Your answer: {a.selected_answer || "—"} · Correct: {a.correct_answer}
+                    </p>
+                    {a.explanation && (
+                      <div className="rounded-lg border border-border bg-card p-3">
+                        <p className="text-xs font-semibold text-foreground">Why this went wrong</p>
+                        <p className="text-xs text-muted-foreground mt-1">{a.explanation}</p>
+                        {a.study_hint && (
+                          <p className="text-xs text-primary mt-2">{a.study_hint}</p>
+                        )}
+                      </div>
+                    )}
+                    {a.related_notes.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-foreground">Revise these notes</p>
+                        {a.related_notes.map((note) => (
+                          <div key={note.id} className="rounded-lg border border-border bg-card p-3">
+                            <p className="text-xs font-medium text-foreground">
+                              {note.subject_name} · {note.module_name} · {note.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">{note.snippet}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

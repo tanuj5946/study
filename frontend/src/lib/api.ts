@@ -76,6 +76,8 @@ export const updateNoteProgress = (noteId: number, completed: boolean) =>
     method: "PATCH",
     body: JSON.stringify({ completed }),
   });
+export const getNoteRevisionPack = (noteId: number) =>
+  request<NoteRevisionPack>(`/api/notes/${noteId}/revision-pack`);
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -151,6 +153,21 @@ export interface NoteProgress {
   last_read_at: string | null;
   completed: boolean;
   completed_at: string | null;
+}
+
+export interface NoteRevisionPack {
+  summary: string[];
+  flashcards: {
+    id: string;
+    front: string;
+    back: string;
+  }[];
+  quickQuestions: {
+    id: string;
+    question: string;
+    answer: string;
+  }[];
+  tutorTips: string[];
 }
 
 // planner
@@ -362,8 +379,10 @@ export interface ResultRow {
 }
 
 export interface ResultDetail extends ResultRow {
+  module_id?: number;
   answers: {
     question_id: number;
+    module_id?: number;
     question: string;
     options: string[];
     correct_answer: string;
@@ -371,6 +390,16 @@ export interface ResultDetail extends ResultRow {
     is_correct: boolean;
     topic: string;
     difficulty: string;
+    explanation: string | null;
+    study_hint: string | null;
+    related_notes: {
+      id: number;
+      title: string;
+      module_id: number;
+      module_name: string;
+      subject_name: string;
+      snippet: string;
+    }[];
   }[];
 }
 
@@ -396,6 +425,19 @@ export interface RecommendationData {
     id: number; module_name: string; subject_name: string;
     difficulty: string; flagged: boolean; action: string; reason: string;
     notes_total?: number; notes_completed?: number;
+  }[];
+  revisionQueue: {
+    topic: string;
+    accuracy: number;
+    interval_days: number;
+    streak: number;
+    due_at: string;
+    overdue_hours: number;
+    priority: string;
+    reason: string;
+    module_id?: number | null;
+    module_name?: string | null;
+    subject_name?: string | null;
   }[];
   predictions: {
     topic: string; current_accuracy: number;

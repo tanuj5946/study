@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const db     = require('../config/db');
 const verifyToken = require('../middleware/auth');
+const { updateTopicReviewSchedule } = require('../services/topicReviewSchedule');
 
 // GET /api/tests/:moduleId — fetch questions for a module
 router.get('/:moduleId', verifyToken, async (req, res) => {
@@ -30,6 +31,16 @@ router.post('/submit', verifyToken, async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    const questionIds = answers.map((answer) => answer.question_id);
+    const { rows: questionRows } = await client.query(
+      `SELECT id, topic, module_id
+       FROM questions
+       WHERE id = ANY($1::int[])`,
+      [questionIds]
+    );
+
+    const questionMap = new Map(questionRows.map((row) => [row.id, row]));
+
     // save assessment
     const { rows } = await client.query(`
       INSERT INTO assessments (user_id, module_id, total_questions, score, percentage)
@@ -48,16 +59,45 @@ router.post('/submit', verifyToken, async (req, res) => {
     }
 
     // update topic_mastery
+    const topicStats = new Map();
+
     for (const ans of answers) {
+      const question = questionMap.get(ans.question_id);
+      if (!question) {
+        continue;
+      }
+
       await client.query(`
         INSERT INTO topic_mastery (user_id, topic, accuracy, attempts)
-        VALUES ($1, (SELECT topic FROM questions WHERE id = $2), $3, 1)
+        VALUES ($1, $2, $3, 1)
         ON CONFLICT (user_id, topic) DO UPDATE SET
           attempts = topic_mastery.attempts + 1,
           accuracy = ((topic_mastery.accuracy * topic_mastery.attempts) + $3)
                      / (topic_mastery.attempts + 1)
-      `, [user_id, ans.question_id, ans.is_correct ? 100 : 0]);
+      `, [user_id, question.topic, ans.is_correct ? 100 : 0]);
+
+      const current = topicStats.get(question.topic) || {
+        topic: question.topic,
+        module_id: question.module_id,
+        correct: 0,
+        total: 0,
+      };
+      current.total += 1;
+      if (ans.is_correct) {
+        current.correct += 1;
+      }
+      topicStats.set(question.topic, current);
     }
+
+    await updateTopicReviewSchedule(
+      client,
+      user_id,
+      Array.from(topicStats.values()).map((entry) => ({
+        topic: entry.topic,
+        module_id: entry.module_id,
+        accuracy: Number(((entry.correct / entry.total) * 100).toFixed(2)),
+      }))
+    );
 
     await client.query('COMMIT');
     res.json({ assessment_id, score, total_questions, percentage });

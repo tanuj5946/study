@@ -2,6 +2,89 @@ const router = require('express').Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/auth');
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildSnippet(content, terms = []) {
+  const clean = String(content || '').replace(/\s+/g, ' ').trim();
+  if (!clean) {
+    return '';
+  }
+
+  const firstMatch = terms
+    .filter(Boolean)
+    .map((term) => {
+      const regex = new RegExp(escapeRegExp(term), 'i');
+      const match = clean.match(regex);
+      return match ? match.index : -1;
+    })
+    .filter((index) => index >= 0)
+    .sort((a, b) => a - b)[0];
+
+  if (typeof firstMatch !== 'number') {
+    return clean.slice(0, 180);
+  }
+
+  const start = Math.max(0, firstMatch - 70);
+  const end = Math.min(clean.length, firstMatch + 110);
+  const prefix = start > 0 ? '...' : '';
+  const suffix = end < clean.length ? '...' : '';
+
+  return `${prefix}${clean.slice(start, end).trim()}${suffix}`;
+}
+
+async function findRelatedNotes(moduleId, topic, correctAnswer) {
+  const { rows } = await db.query(
+    `SELECT
+       n.id,
+       n.title,
+       n.content,
+       m.id AS module_id,
+       m.module_name,
+       s.name AS subject_name
+     FROM notes n
+     JOIN modules m ON m.id = n.module_id
+     JOIN subjects s ON s.id = m.subject_id
+     WHERE n.module_id = $1
+     ORDER BY
+       CASE
+         WHEN lower(n.title) LIKE lower($2) THEN 0
+         WHEN lower(n.content) LIKE lower($2) THEN 1
+         WHEN lower(n.content) LIKE lower($3) THEN 2
+         ELSE 3
+       END,
+       n.id ASC
+     LIMIT 2`,
+    [moduleId, `%${topic}%`, `%${correctAnswer}%`]
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    module_id: row.module_id,
+    module_name: row.module_name,
+    subject_name: row.subject_name,
+    snippet: buildSnippet(row.content, [topic, correctAnswer]),
+  }));
+}
+
+function buildWrongAnswerSupport(answer, relatedNotes) {
+  const selected = answer.selected_answer || 'your selected option';
+
+  if (relatedNotes.length > 0) {
+    return {
+      explanation: `"${answer.correct_answer}" sahi hai kyunki question ${answer.topic} ke core concept par based tha. Tumhara answer "${selected}" related lag sakta tha, lekin exact rule ya definition "${relatedNotes[0].title}" me clearer hai.`,
+      study_hint: `Pehle "${relatedNotes[0].title}" revise karo, phir is topic ke 2 fresh questions attempt karo.`,
+    };
+  }
+
+  return {
+    explanation: `"${answer.correct_answer}" is question ka correct answer hai kyunki ye ${answer.topic} ke asked concept ko directly satisfy karta hai. "${selected}" choose karna usually tab hota hai jab concept aur example mix ho jate hain.`,
+    study_hint: `Is topic ka definition + example ek saath revise karo aur phir question wording par dhyan do.`,
+  };
+}
+
 // GET /api/analytics/summary — overall stats
 router.get('/summary', verifyToken, async (req, res) => {
   try {
@@ -87,7 +170,7 @@ router.get('/results/:id', verifyToken, async (req, res) => {
     const { rows: result } = await db.query(`
       SELECT
         a.id, a.score, a.total_questions, a.percentage, a.created_at,
-        m.module_name, s.name as subject_name,
+        m.id AS module_id, m.module_name, s.name as subject_name,
         CASE WHEN a.percentage >= 60 THEN true ELSE false END as passed
       FROM assessments a
       JOIN modules m ON m.id = a.module_id
@@ -102,6 +185,7 @@ router.get('/results/:id', verifyToken, async (req, res) => {
         aa.question_id,
         aa.selected_answer,
         aa.is_correct,
+        q.module_id,
         q.question,
         q.options,
         q.correct_answer,
@@ -113,7 +197,34 @@ router.get('/results/:id', verifyToken, async (req, res) => {
       ORDER BY aa.id ASC
     `, [req.params.id]);
 
-    res.json({ ...result[0], answers });
+    const enrichedAnswers = await Promise.all(
+      answers.map(async (answer) => {
+        if (answer.is_correct) {
+          return {
+            ...answer,
+            explanation: null,
+            study_hint: null,
+            related_notes: [],
+          };
+        }
+
+        const relatedNotes = await findRelatedNotes(
+          answer.module_id || result[0].module_id,
+          answer.topic,
+          answer.correct_answer
+        );
+        const support = buildWrongAnswerSupport(answer, relatedNotes);
+
+        return {
+          ...answer,
+          explanation: support.explanation,
+          study_hint: support.study_hint,
+          related_notes: relatedNotes,
+        };
+      })
+    );
+
+    res.json({ ...result[0], answers: enrichedAnswers });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
-  getSubjects, getSubjectQuestions, submitTest,
-  type Subject, type Question,
+  getSubjects, getSubjectQuestions, getResultDetail, submitTest,
+  type Subject, type Question, type ResultDetail,
 } from "@/lib/api";
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -288,6 +288,8 @@ function ResultScreen({ subject, difficulty, answers, questions, onRetry, onBack
   const correct = answers.filter(a => a.is_correct).length;
   const total   = questions.length;
   const percent = Math.round((correct / total) * 100);
+  const [detail, setDetail] = useState<ResultDetail | null>(null);
+  const [savingResult, setSavingResult] = useState(true);
 
   // breakdown by difficulty
   const breakdown = ["Easy", "Medium", "Hard"].map(d => {
@@ -299,16 +301,43 @@ function ResultScreen({ subject, difficulty, answers, questions, onRetry, onBack
   useEffect(() => {
     // find a representative module_id from the questions
     const module_id = questions[0] ? (questions[0] as any).module_id : null;
-    if (!module_id) return;
-    submitTest({
-      module_id,
-      answers: answers.map((a, i) => ({
-        question_id:     a.question_id,
-        selected_answer: a.selected_answer,
-        is_correct:      a.is_correct,
-      })),
-    }).catch(console.error);
-  }, []);
+    if (!module_id) {
+      setSavingResult(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const saveAndLoadDetail = async () => {
+      try {
+        const result = await submitTest({
+          module_id,
+          answers: answers.map((a) => ({
+            question_id:     a.question_id,
+            selected_answer: a.selected_answer,
+            is_correct:      a.is_correct,
+          })),
+        });
+
+        const review = await getResultDetail(result.assessment_id);
+        if (!cancelled) {
+          setDetail(review);
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (!cancelled) {
+          setSavingResult(false);
+        }
+      }
+    };
+
+    void saveAndLoadDetail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [answers, questions]);
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -359,11 +388,27 @@ function ResultScreen({ subject, difficulty, answers, questions, onRetry, onBack
       <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
         <div className="px-5 py-3 border-b border-border">
           <h3 className="text-sm font-semibold text-foreground">Answer Review</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            {savingResult ? "Saving result and preparing smart review..." : "Mistakes now include revision hints and note references."}
+          </p>
         </div>
-        {questions.map((q, i) => {
-          const isCorrect = answers[i]?.is_correct;
+        {(detail?.answers ?? questions.map((q, i) => ({
+          id: q.id,
+          question_id: q.id,
+          question: q.question,
+          options: q.options,
+          correct_answer: q.correct_answer,
+          selected_answer: answers[i]?.selected_answer,
+          is_correct: answers[i]?.is_correct,
+          topic: q.topic,
+          difficulty: q.difficulty,
+          explanation: null,
+          study_hint: null,
+          related_notes: [],
+        }))).map((q) => {
+          const isCorrect = q.is_correct;
           return (
-            <div key={q.id} className={`px-5 py-4 border-b border-border last:border-0 ${isCorrect ? "bg-primary/5" : "bg-destructive/5"}`}>
+            <div key={q.question_id} className={`px-5 py-4 border-b border-border last:border-0 ${isCorrect ? "bg-primary/5" : "bg-destructive/5"}`}>
               <div className="flex items-start gap-2 mb-2">
                 {isCorrect
                   ? <CheckCircle2 size={16} className="text-primary shrink-0 mt-0.5" />
@@ -374,10 +419,34 @@ function ResultScreen({ subject, difficulty, answers, questions, onRetry, onBack
                 </div>
               </div>
               <div className="ml-6 space-y-1">
-                {!isCorrect && answers[i]?.selected_answer && (
-                  <p className="text-xs text-destructive">Your answer: {answers[i].selected_answer}</p>
+                {!isCorrect && q.selected_answer && (
+                  <p className="text-xs text-destructive">Your answer: {q.selected_answer}</p>
                 )}
                 <p className="text-xs text-primary">Correct: {q.correct_answer}</p>
+                {!isCorrect && q.explanation && (
+                  <div className="mt-3 space-y-3">
+                    <div className="rounded-lg border border-border bg-card p-3">
+                      <p className="text-xs font-semibold text-foreground">Why this went wrong</p>
+                      <p className="text-xs text-muted-foreground mt-1">{q.explanation}</p>
+                      {q.study_hint && (
+                        <p className="text-xs text-primary mt-2">{q.study_hint}</p>
+                      )}
+                    </div>
+                    {q.related_notes.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-foreground">Revise these notes</p>
+                        {q.related_notes.map((note) => (
+                          <div key={note.id} className="rounded-lg border border-border bg-card p-3">
+                            <p className="text-xs font-medium text-foreground">
+                              {note.subject_name} · {note.module_name} · {note.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">{note.snippet}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );

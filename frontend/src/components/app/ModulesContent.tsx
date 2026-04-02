@@ -11,10 +11,12 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ChatMarkdown } from "@/components/ui/chat-markdown";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import {
-  getSubjects, getModules, getNotes, markNoteRead, sendChatMessage, updateNoteProgress,
-  type Subject, type Module, type Note,
+  getSubjects, getModules, getNotes, getNoteRevisionPack, markNoteRead, sendChatMessage, updateNoteProgress,
+  type Subject, type Module, type Note, type NoteRevisionPack,
 } from "@/lib/api";
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -259,11 +261,14 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
   const [notes, setNotes]       = useState<Note[]>([]);
   const [selected, setSelected] = useState<Note | null>(null);
   const [loading, setLoading]   = useState(true);
-  const [mode, setMode]         = useState<"read" | "ai">("read");
+  const [mode, setMode]         = useState<"read" | "ai" | "revise">("read");
   const [messages, setMessages] = useState<{ role: "user" | "bot"; text: string }[]>([]);
   const [prompt, setPrompt]     = useState("");
   const [sending, setSending]   = useState(false);
   const [savingProgress, setSavingProgress] = useState(false);
+  const [revisionPack, setRevisionPack] = useState<NoteRevisionPack | null>(null);
+  const [loadingRevisionPack, setLoadingRevisionPack] = useState(false);
+  const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
 
   const syncNoteState = (noteId: number, updates: Partial<Note>) => {
     setNotes((prev) => prev.map((note) => (
@@ -287,11 +292,15 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
   useEffect(() => {
     if (!selected) {
       setMessages([]);
+      setRevisionPack(null);
+      setFlippedCards({});
       return;
     }
 
     setMode("read");
     setPrompt("");
+    setRevisionPack(null);
+    setFlippedCards({});
     setMessages([
       {
         role: "bot",
@@ -361,7 +370,31 @@ Student request: ${question}`;
     "Summarize this note in simple bullet points.",
     "Explain this note in very simple language.",
     "Make 3 quick revision questions from this note.",
+    "Teach this note like a friendly tutor with one real-life example.",
+    "What mistakes do students usually make in this topic?",
   ];
+
+  const loadRevisionPack = async () => {
+    if (!currentNote || loadingRevisionPack) return;
+
+    setMode("revise");
+    setLoadingRevisionPack(true);
+
+    try {
+      const pack = await getNoteRevisionPack(currentNote.id);
+      setRevisionPack(pack);
+      setFlippedCards({});
+    } finally {
+      setLoadingRevisionPack(false);
+    }
+  };
+
+  const toggleFlashcard = (cardId: string) => {
+    setFlippedCards((prev) => ({
+      ...prev,
+      [cardId]: !prev[cardId],
+    }));
+  };
 
   const handleToggleCompleted = async () => {
     if (!currentNote || savingProgress) return;
@@ -456,6 +489,16 @@ Student request: ${question}`;
                 >
                   Ask AI
                 </button>
+                <button
+                  onClick={() => void loadRevisionPack()}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    mode === "revise"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Revise
+                </button>
               </div>
             </div>
           </div>
@@ -468,6 +511,113 @@ Student request: ${question}`;
               prose-pre:bg-secondary prose-pre:border prose-pre:border-border
               prose-strong:text-foreground prose-a:text-primary prose-li:text-muted-foreground">
               <ReactMarkdown>{currentNote.content}</ReactMarkdown>
+            </div>
+          ) : mode === "revise" ? (
+            <div className="rounded-xl border border-border bg-background p-4">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h5 className="text-sm font-semibold text-foreground">Revision pack</h5>
+                  <p className="text-xs text-muted-foreground">
+                    Quick recap, flashcards, and tutor prompts for this note.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void loadRevisionPack()}
+                  disabled={loadingRevisionPack}
+                >
+                  {loadingRevisionPack ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Generating
+                    </>
+                  ) : (
+                    "Refresh pack"
+                  )}
+                </Button>
+              </div>
+
+              {loadingRevisionPack && !revisionPack ? (
+                <div className="rounded-lg border border-border bg-secondary/20 px-4 py-6 text-sm text-muted-foreground flex items-center gap-2">
+                  <Loader2 size={14} className="animate-spin" />
+                  Building your revision pack...
+                </div>
+              ) : revisionPack ? (
+                <div className="space-y-5">
+                  <div className="rounded-lg border border-border bg-secondary/20 p-4">
+                    <h6 className="text-sm font-semibold text-foreground mb-3">Quick recap</h6>
+                    <div className="space-y-2">
+                      {revisionPack.summary.map((item, index) => (
+                        <p key={`${item}-${index}`} className="text-sm text-muted-foreground">
+                          {index + 1}. {item}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h6 className="text-sm font-semibold text-foreground">Flashcards</h6>
+                      <span className="text-xs text-muted-foreground">Tap to reveal answer</span>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {revisionPack.flashcards.map((card) => {
+                        const flipped = Boolean(flippedCards[card.id]);
+                        return (
+                          <button
+                            key={card.id}
+                            onClick={() => toggleFlashcard(card.id)}
+                            className="rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-secondary/20"
+                          >
+                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">
+                              {flipped ? "Answer" : "Prompt"}
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                              {flipped ? card.back : card.front}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-border bg-card p-4">
+                    <h6 className="text-sm font-semibold text-foreground mb-3">Quick self-check</h6>
+                    <div className="space-y-3">
+                      {revisionPack.quickQuestions.map((item, index) => (
+                        <div key={item.id} className="rounded-lg border border-border bg-secondary/20 p-3">
+                          <p className="text-sm font-medium text-foreground">
+                            Q{index + 1}. {item.question}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Ideal answer: {item.answer}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {revisionPack.tutorTips.length > 0 && (
+                    <div className="rounded-lg border border-border bg-card p-4">
+                      <h6 className="text-sm font-semibold text-foreground mb-3">Tutor tips</h6>
+                      <div className="space-y-2">
+                        {revisionPack.tutorTips.map((tip, index) => (
+                          <p key={`${tip}-${index}`} className="text-sm text-muted-foreground">
+                            {index + 1}. {tip}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Generate a revision pack to get flashcards and a recap for this note.
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="rounded-xl border border-border bg-background p-4">
@@ -501,7 +651,20 @@ Student request: ${question}`;
                           : "bg-secondary text-foreground rounded-tl-sm"
                       }`}
                     >
-                      {message.text}
+                      {message.role === "bot" ? (
+                        <>
+                          <ChatMarkdown text={message.text} />
+                          <div className="mt-2 flex justify-end">
+                            <CopyButton
+                              text={message.text}
+                              label="Copy reply"
+                              className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        message.text
+                      )}
                     </div>
                   </div>
                 ))}

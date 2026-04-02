@@ -4,6 +4,7 @@ const verifyToken = require('../middleware/auth');
 const { generateAnswer } = require('../lib/ollamaClient');
 const { searchChunks } = require('../services/ragSearch');
 const { ensureNotesSyncedForUser } = require('../services/ragNotes');
+const { getRevisionQueue } = require('../services/topicReviewSchedule');
 
 let initPromise;
 const MAX_RAG_CHUNKS = 2;
@@ -91,11 +92,13 @@ async function getStudentData(user_id) {
     WHERE user_id = $1 AND flagged = true
   `, [user_id]);
 
-  return { assessments, topicMastery, studySessions, allModules, unlocks, flagged };
+  const revisionQueue = await getRevisionQueue(user_id);
+
+  return { assessments, topicMastery, studySessions, allModules, unlocks, flagged, revisionQueue };
 }
 
 function generateRecommendations(data) {
-  const { assessments, topicMastery, studySessions, allModules, unlocks, flagged } = data;
+  const { assessments, topicMastery, studySessions, allModules, unlocks, flagged, revisionQueue } = data;
 
   const weakTopics = topicMastery
     .filter((topic) => parseFloat(topic.accuracy) < 60)
@@ -272,6 +275,7 @@ function generateRecommendations(data) {
     weakTopics,
     subjectPerformance,
     nextModules,
+    revisionQueue,
     predictions,
     studyPlan,
     studyStats: {
@@ -295,7 +299,7 @@ router.get('/', verifyToken, async (req, res) => {
 
 function buildContext(data, recommendations) {
   const { assessments, topicMastery } = data;
-  const { weakTopics, subjectPerformance, studyPlan, studyStats, nextModules, predictions } = recommendations;
+  const { weakTopics, subjectPerformance, studyPlan, studyStats, nextModules, predictions, revisionQueue } = recommendations;
 
   return {
     total_tests: assessments.length,
@@ -313,6 +317,7 @@ function buildContext(data, recommendations) {
     subjects: subjectPerformance,
     study_plan: studyPlan,
     next_modules: nextModules,
+    revision_queue: revisionQueue,
     predictions,
     sessions_week: studyStats.sessions_this_week,
     avg_daily_mins: studyStats.avg_minutes_per_day,
@@ -333,6 +338,12 @@ function compactContextForPrompt(ctx) {
       subject_name: module.subject_name,
       action: module.action,
       reason: module.reason,
+    })),
+    revision_queue: ctx.revision_queue.slice(0, 3).map((item) => ({
+      topic: item.topic,
+      accuracy: item.accuracy,
+      priority: item.priority,
+      reason: item.reason,
     })),
     predictions: ctx.predictions.slice(0, 2),
     sessions_week: ctx.sessions_week,
@@ -385,6 +396,8 @@ STRICT RULES:
 3. If no study material matches the question, say: "Is topic ka material abhi available nahi hai."
 4. NEVER make up data. Only use the JSON context and study material provided.
 5. Keep replies under 350 words. Use markdown with short headings and bullet points where helpful.
+5a. When using markdown, keep it valid: put headings and bullet points on separate lines, and leave a blank line between sections.
+5b. If you include code, commands, SQL, JSON, or config, wrap them in fenced code blocks and add a language label when possible.
 6. Do NOT act as a general chatbot - you are a dashboard assistant only.
 7. For topic/concept questions like "explain ACID properties", do NOT dump raw notes or note titles.
 8. For topic/concept questions, answer in this structure:
