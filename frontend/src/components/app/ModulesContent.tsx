@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { MiniTest } from "@/components/app/MiniTest";
 import { getUnlocks } from "@/lib/api";
@@ -6,7 +6,7 @@ import { AlertTriangle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import {
   BookOpen, ChevronRight, CheckCircle2, Circle, Loader2,
-  ArrowLeft, FileText, StickyNote, BarChart3, Lock, Bot, Send,
+  ArrowLeft, FileText, StickyNote, BarChart3, Lock, Bot, Send, Sparkles,
   Link as LinkIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -269,6 +269,8 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
   const [revisionPack, setRevisionPack] = useState<NoteRevisionPack | null>(null);
   const [loadingRevisionPack, setLoadingRevisionPack] = useState(false);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
+  const [selectedExcerpt, setSelectedExcerpt] = useState("");
+  const noteContentRef = useRef<HTMLDivElement | null>(null);
 
   const syncNoteState = (noteId: number, updates: Partial<Note>) => {
     setNotes((prev) => prev.map((note) => (
@@ -294,6 +296,7 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
       setMessages([]);
       setRevisionPack(null);
       setFlippedCards({});
+      setSelectedExcerpt("");
       return;
     }
 
@@ -301,6 +304,7 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
     setPrompt("");
     setRevisionPack(null);
     setFlippedCards({});
+    setSelectedExcerpt("");
     setMessages([
       {
         role: "bot",
@@ -323,6 +327,12 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
       .catch(() => {});
   }, [selected?.id]);
 
+  useEffect(() => {
+    if (mode !== "read" && selectedExcerpt) {
+      clearSelectedExcerpt();
+    }
+  }, [mode]);
+
   if (loading) return <Spinner />;
 
   if (!notes.length) return (
@@ -333,18 +343,24 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
   const completedCount = notes.filter((note) => note.completed).length;
   const readCount = notes.filter((note) => Boolean(note.last_read_at)).length;
   const moduleCompleted = notes.length > 0 && completedCount === notes.length;
+  const currentNoteIndex = notes.findIndex((note) => note.id === currentNote.id);
+  const previousNote = currentNoteIndex > 0 ? notes[currentNoteIndex - 1] : null;
 
-  const buildScopedPrompt = (question: string) => {
+  const buildScopedPrompt = (question: string, extraContext?: string) => {
     const noteContent = currentNote.content.slice(0, 6000);
 
     return `Current note title: ${currentNote.title}
 Current note content:
 ${noteContent}
 
+${extraContext ? `${extraContext}
+
+` : ""} 
+
 Student request: ${question}`;
   };
 
-  const sendNotePrompt = async (rawPrompt: string) => {
+  const sendNotePrompt = async (rawPrompt: string, extraContext?: string) => {
     const trimmed = rawPrompt.trim();
     if (!trimmed || sending) return;
 
@@ -354,7 +370,7 @@ Student request: ${question}`;
     setSending(true);
 
     try {
-      const { response } = await sendChatMessage(buildScopedPrompt(trimmed));
+      const { response } = await sendChatMessage(buildScopedPrompt(trimmed, extraContext));
       setMessages(prev => [...prev, { role: "bot", text: response }]);
     } catch {
       setMessages(prev => [...prev, {
@@ -394,6 +410,85 @@ Student request: ${question}`;
       ...prev,
       [cardId]: !prev[cardId],
     }));
+  };
+
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    const container = noteContentRef.current;
+
+    if (!selection || !container || selection.isCollapsed) {
+      setSelectedExcerpt("");
+      return;
+    }
+
+    const anchorNode = selection.anchorNode;
+    const focusNode = selection.focusNode;
+
+    if (!anchorNode || !focusNode) {
+      setSelectedExcerpt("");
+      return;
+    }
+
+    const selectionInsideNote =
+      container.contains(anchorNode) && container.contains(focusNode);
+
+    if (!selectionInsideNote) {
+      setSelectedExcerpt("");
+      return;
+    }
+
+    const text = selection.toString().replace(/\s+/g, " ").trim();
+    setSelectedExcerpt(text);
+  };
+
+  const clearSelectedExcerpt = () => {
+    window.getSelection()?.removeAllRanges();
+    setSelectedExcerpt("");
+  };
+
+  const handleTutorAction = async (instruction: string) => {
+    if (!selectedExcerpt) return;
+
+    const excerptContext = `Selected note section:
+"${selectedExcerpt}"
+
+Tutor mode instructions:
+- Focus primarily on the selected section, not the whole note.
+- Keep the answer short, clear, and student-friendly.
+- If useful, connect the selected section back to the current note.`;
+
+    await sendNotePrompt(instruction, excerptContext);
+    clearSelectedExcerpt();
+  };
+
+  const handleCompareWithPreviousTopic = async () => {
+    if (!selectedExcerpt) return;
+
+    const previousTopicContext = previousNote
+      ? `Selected note section:
+"${selectedExcerpt}"
+
+Previous topic title: ${previousNote.title}
+Previous topic content:
+${previousNote.content.slice(0, 3000)}
+
+Tutor mode instructions:
+- Compare the selected section with the previous topic.
+- Show differences and connections in simple language.
+- If there is overlap, mention it clearly.`
+      : `Selected note section:
+"${selectedExcerpt}"
+
+Tutor mode instructions:
+- The student asked to compare this with the previous topic.
+- There is no previous note available in this module.
+- Briefly say that, then explain the selected section on its own in simple language.`;
+
+    await sendNotePrompt(
+      "Compare this selected section with the previous topic in simple language.",
+      previousTopicContext
+    );
+    clearSelectedExcerpt();
   };
 
   const handleToggleCompleted = async () => {
@@ -504,13 +599,74 @@ Student request: ${question}`;
           </div>
 
           {mode === "read" ? (
-            <div className="prose prose-sm max-w-none dark:prose-invert
-              prose-headings:font-semibold prose-headings:text-foreground
-              prose-p:text-muted-foreground prose-p:leading-relaxed
-              prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded
-              prose-pre:bg-secondary prose-pre:border prose-pre:border-border
-              prose-strong:text-foreground prose-a:text-primary prose-li:text-muted-foreground">
-              <ReactMarkdown>{currentNote.content}</ReactMarkdown>
+            <div className="space-y-4">
+              {selectedExcerpt && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Sparkles size={14} className="text-primary" />
+                        <h5 className="text-sm font-semibold text-foreground">AI tutor mode</h5>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Selected section:
+                      </p>
+                      <p className="text-sm text-foreground mt-2 line-clamp-3">
+                        "{selectedExcerpt}"
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearSelectedExcerpt}
+                      className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => void handleTutorAction("Explain this selected section in very simple language.")}
+                      className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                    >
+                      explain this simply
+                    </button>
+                    <button
+                      onClick={() => void handleTutorAction("Give me one clear real-life or exam-style example for this selected section.")}
+                      className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                    >
+                      give me an example
+                    </button>
+                    <button
+                      onClick={() => void handleTutorAction("Make 3 MCQs from this selected section with answers and one-line explanations.")}
+                      className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                    >
+                      make 3 MCQs from this section
+                    </button>
+                    <button
+                      onClick={() => void handleCompareWithPreviousTopic()}
+                      className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                    >
+                      compare this with previous topic
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div
+                ref={noteContentRef}
+                onMouseUp={handleTextSelection}
+                onKeyUp={handleTextSelection}
+                className="prose prose-sm max-w-none dark:prose-invert
+                  prose-headings:font-semibold prose-headings:text-foreground
+                  prose-p:text-muted-foreground prose-p:leading-relaxed
+                  prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded
+                  prose-pre:bg-secondary prose-pre:border prose-pre:border-border
+                  prose-strong:text-foreground prose-a:text-primary prose-li:text-muted-foreground"
+              >
+                <ReactMarkdown>{currentNote.content}</ReactMarkdown>
+              </div>
             </div>
           ) : mode === "revise" ? (
             <div className="rounded-xl border border-border bg-background p-4">
