@@ -80,6 +80,14 @@ export const getNoteRevisionPack = (noteId: number) =>
   request<NoteRevisionPack>(`/api/notes/${noteId}/revision-pack`);
 export const getNoteInlineChecks = (noteId: number) =>
   request<{ checks: NoteInlineCheck[] }>(`/api/notes/${noteId}/inline-checks`);
+export const sendNoteChatMessage = (
+  noteId: number,
+  payload: { message: string; history?: NoteChatMessage[]; extra_context?: string }
+) =>
+  request<{ response: string }>(`/api/notes/${noteId}/chat`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -179,6 +187,11 @@ export interface NoteInlineCheck {
   options: string[];
   correct_answer: string;
   explanation: string;
+}
+
+export interface NoteChatMessage {
+  role: "user" | "bot";
+  text: string;
 }
 
 // planner

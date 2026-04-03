@@ -15,8 +15,8 @@ import { ChatMarkdown } from "@/components/ui/chat-markdown";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import {
-  getSubjects, getModules, getNotes, getNoteInlineChecks, getNoteRevisionPack, markNoteRead, sendChatMessage, updateNoteProgress,
-  type Subject, type Module, type Note, type NoteInlineCheck, type NoteRevisionPack,
+  getSubjects, getModules, getNotes, getNoteInlineChecks, getNoteRevisionPack, markNoteRead, sendNoteChatMessage, updateNoteProgress,
+  type Subject, type Module, type Note, type NoteChatMessage, type NoteInlineCheck, type NoteRevisionPack,
 } from "@/lib/api";
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -57,6 +57,15 @@ function splitNoteIntoSections(content: string) {
       };
     })
     .filter((section) => section.content.length > 40);
+}
+
+function createInitialNoteMessages(noteTitle: string): NoteChatMessage[] {
+  return [
+    {
+      role: "bot",
+      text: `Ask me anything about "${noteTitle}". I can summarize it, explain follow-up doubts, or keep going from our last question in this note.`,
+    },
+  ];
 }
 
 /* ── Helpers ────────────────────────────────────────────── */
@@ -298,7 +307,7 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
   const [selected, setSelected] = useState<Note | null>(null);
   const [loading, setLoading]   = useState(true);
   const [mode, setMode]         = useState<"read" | "ai" | "revise">("read");
-  const [messages, setMessages] = useState<{ role: "user" | "bot"; text: string }[]>([]);
+  const [noteSessions, setNoteSessions] = useState<Record<number, NoteChatMessage[]>>({});
   const [prompt, setPrompt]     = useState("");
   const [sending, setSending]   = useState(false);
   const [savingProgress, setSavingProgress] = useState(false);
@@ -323,6 +332,7 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
 
   useEffect(() => {
     setLoading(true);
+    setNoteSessions({});
     getNotes(moduleId)
       .then(data => {
         setNotes(data);
@@ -333,7 +343,6 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
 
   useEffect(() => {
     if (!selected) {
-      setMessages([]);
       setRevisionPack(null);
       setFlippedCards({});
       setSelectedExcerpt("");
@@ -351,12 +360,11 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
     setInlineChecks([]);
     setInlineCheckAnswers({});
     setRevealedInlineChecks({});
-    setMessages([
-      {
-        role: "bot",
-        text: `Ask me anything about "${selected.title}". I can summarize it, explain tough parts, or quiz you on it.`,
-      },
-    ]);
+    setNoteSessions((prev) => (
+      prev[selected.id]
+        ? prev
+        : { ...prev, [selected.id]: createInitialNoteMessages(selected.title) }
+    ));
   }, [selected?.id]);
 
   useEffect(() => {
@@ -420,19 +428,19 @@ function NotesPanel({ moduleId }: { moduleId: number }) {
   const currentNoteIndex = notes.findIndex((note) => note.id === currentNote.id);
   const previousNote = currentNoteIndex > 0 ? notes[currentNoteIndex - 1] : null;
   const noteSections = splitNoteIntoSections(currentNote.content);
+  const currentMessages = noteSessions[currentNote.id] ?? createInitialNoteMessages(currentNote.title);
 
-  const buildScopedPrompt = (question: string, extraContext?: string) => {
-    const noteContent = currentNote.content.slice(0, 6000);
-
-    return `Current note title: ${currentNote.title}
-Current note content:
-${noteContent}
-
-${extraContext ? `${extraContext}
-
-` : ""} 
-
-Student request: ${question}`;
+  const updateCurrentNoteSession = (
+    updater: NoteChatMessage[] | ((prev: NoteChatMessage[]) => NoteChatMessage[])
+  ) => {
+    setNoteSessions((prev) => {
+      const base = prev[currentNote.id] ?? createInitialNoteMessages(currentNote.title);
+      const next = typeof updater === "function" ? updater(base) : updater;
+      return {
+        ...prev,
+        [currentNote.id]: next,
+      };
+    });
   };
 
   const sendNotePrompt = async (rawPrompt: string, extraContext?: string) => {
@@ -441,14 +449,19 @@ Student request: ${question}`;
 
     setMode("ai");
     setPrompt("");
-    setMessages(prev => [...prev, { role: "user", text: trimmed }]);
+    updateCurrentNoteSession((prev) => [...prev, { role: "user", text: trimmed }]);
     setSending(true);
 
     try {
-      const { response } = await sendChatMessage(buildScopedPrompt(trimmed, extraContext));
-      setMessages(prev => [...prev, { role: "bot", text: response }]);
+      const history = currentMessages.slice(-8);
+      const { response } = await sendNoteChatMessage(currentNote.id, {
+        message: trimmed,
+        history,
+        extra_context: extraContext,
+      });
+      updateCurrentNoteSession((prev) => [...prev, { role: "bot", text: response }]);
     } catch {
-      setMessages(prev => [...prev, {
+      updateCurrentNoteSession((prev) => [...prev, {
         role: "bot",
         text: "AI answer abhi nahi aa paya. Thodi der baad phir try karo.",
       }]);
@@ -940,7 +953,7 @@ Tutor mode instructions:
               </div>
 
               <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                {messages.map((message, index) => (
+                {currentMessages.map((message, index) => (
                   <div
                     key={`${message.role}-${index}`}
                     className={`flex items-start gap-3 ${message.role === "user" ? "justify-end" : ""}`}

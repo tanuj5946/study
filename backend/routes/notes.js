@@ -142,6 +142,70 @@ function splitIntoSentences(text) {
     .filter(Boolean);
 }
 
+function sanitizeChatHistory(history = []) {
+  if (!Array.isArray(history)) {
+    return [];
+  }
+
+  return history
+    .filter((item) => item && typeof item.text === 'string')
+    .map((item) => ({
+      role: item.role === 'bot' ? 'assistant' : 'user',
+      content: item.text.trim().slice(0, 2500),
+    }))
+    .filter((item) => item.content.length > 0)
+    .slice(-8);
+}
+
+async function generateNoteChatReply(note, message, history = [], extraContext = '') {
+  const trimmedExtraContext = String(extraContext || '').trim();
+  const userPrompt = trimmedExtraContext
+    ? `Extra note context:
+${trimmedExtraContext}
+
+Student question:
+${message}`
+    : message;
+
+  return generateAnswer(
+    [
+      {
+        role: 'system',
+        content: `You are StudySync Note Tutor.
+
+You are helping a student inside a single note session.
+
+Rules:
+1. Reply in Hinglish.
+2. Use the note content as the primary source of truth.
+3. Use recent chat history to understand follow-up references like "this", "that point", "same topic", or "compare it".
+4. Stay focused on the current note unless extra context is explicitly provided.
+5. If the answer is not supported by the current note or extra context, clearly say that and guide the student back to the note.
+6. Keep replies concise, student-friendly, and use valid markdown when helpful.
+7. For concept explanations, prefer: short heading, short explanation, 3-5 bullets, and one example if useful.
+
+Current note title: ${note.title}
+
+Current note content:
+${String(note.content || '').slice(0, 7000)}`,
+      },
+      ...history,
+      {
+        role: 'user',
+        content: userPrompt,
+      },
+    ],
+    {
+      ollamaOptions: {
+        temperature: 0.15,
+        top_p: 0.85,
+        num_ctx: 4096,
+        num_predict: 420,
+      },
+    }
+  );
+}
+
 function buildFallbackRevisionPack(note) {
   const cleanText = note.content
     .replace(/[#>*`]/g, ' ')
@@ -473,6 +537,47 @@ router.get('/:noteId/inline-checks', verifyToken, async (req, res) => {
     }
 
     res.json({ checks });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/notes/:noteId/chat
+router.post('/:noteId/chat', verifyToken, async (req, res) => {
+  try {
+    const noteId = Number.parseInt(req.params.noteId, 10);
+    const message = String(req.body.message || '').trim();
+    const extraContext = String(req.body.extra_context || '').trim();
+    const history = sanitizeChatHistory(req.body.history);
+
+    if (Number.isNaN(noteId)) {
+      return res.status(400).json({ error: 'Invalid note id' });
+    }
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message required' });
+    }
+
+    const { rows } = await db.query(
+      `SELECT n.id, n.title, n.content, n.module_id
+       FROM notes n
+       WHERE n.id = $1`,
+      [noteId]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    let response;
+    try {
+      response = await generateNoteChatReply(rows[0], message, history, extraContext);
+    } catch (error) {
+      console.error('Note chat generation failed:', error.message);
+      response = 'Is note ke context me answer abhi generate nahi ho paya. Thodi der baad same question phir try karo.';
+    }
+
+    res.json({ response });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

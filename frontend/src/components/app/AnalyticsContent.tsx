@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine, BarChart, Bar, Cell,
@@ -46,6 +47,13 @@ function renderEmptyChart(message: string) {
   );
 }
 
+function csvValue(value: string | number | boolean | null | undefined) {
+  const stringValue = String(value ?? "");
+  return /[",\n]/.test(stringValue)
+    ? `"${stringValue.replace(/"/g, '""')}"`
+    : stringValue;
+}
+
 /* ── Stat card ── */
 function StatCard({ icon: Icon, label, value, sub, color = "text-primary" }: {
   icon: any; label: string; value: string | number; sub?: string; color?: string;
@@ -83,6 +91,46 @@ function exportCSV(results: ResultRow[]) {
   a.href     = url;
   a.download = `studysync-results-${format(new Date(), "yyyy-MM-dd")}.csv`;
   a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportDetailCSV(detail: ResultDetail) {
+  const headers = [
+    "Date",
+    "Subject",
+    "Module",
+    "Question No",
+    "Topic",
+    "Difficulty",
+    "Question",
+    "Your Answer",
+    "Correct Answer",
+    "Result",
+  ];
+
+  const rows = detail.answers.map((answer, index) => [
+    format(new Date(detail.created_at), "yyyy-MM-dd HH:mm"),
+    detail.subject_name,
+    detail.module_name,
+    index + 1,
+    answer.topic,
+    answer.difficulty,
+    answer.question,
+    answer.selected_answer || "-",
+    answer.correct_answer,
+    answer.is_correct ? "Correct" : "Incorrect",
+  ]);
+
+  const csv = [headers, ...rows]
+    .map((row) => row.map(csvValue).join(","))
+    .join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `result-${detail.id}-${detail.module_name.replace(/\s+/g, "-")}.csv`;
+  anchor.click();
   URL.revokeObjectURL(url);
 }
 
@@ -173,22 +221,22 @@ async function exportDetailPDF(detail: ResultDetail) {
     head: [["#", "Question", "Your Answer", "Correct Answer", "Topic", "Result"]],
     body: detail.answers.map((a, i) => [
       i + 1,
-      a.question.length > 60 ? a.question.slice(0, 57) + "..." : a.question,
+      a.question,
       a.selected_answer || "-",
       a.correct_answer,
       a.topic,
-      a.is_correct ? "✓" : "✗",
+      a.is_correct ? "OK" : "X",
     ]),
     headStyles: { fillColor: [30, 30, 30] },
     styles: { fontSize: 8, cellPadding: 3 },
     columnStyles: {
       0: { cellWidth: 8 },
-      1: { cellWidth: 60 },
+      1: { cellWidth: 72 },
       5: { cellWidth: 12, halign: "center", fontStyle: "bold" },
     },
     didParseCell: (data: any) => {
       if (data.column.index === 5 && data.section === "body") {
-        data.cell.styles.textColor = data.cell.raw === "✓" ? [0, 128, 0] : [200, 0, 0];
+        data.cell.styles.textColor = data.cell.raw === "OK" ? [0, 128, 0] : [200, 0, 0];
       }
     },
   });
@@ -200,6 +248,7 @@ function ResultsList({ onView }: { onView: (id: number) => void }) {
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [results, setResults] = useState<ResultRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exportingKey, setExportingKey] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([getAnalyticsSummary(), getResults()])
@@ -309,6 +358,28 @@ function ResultsList({ onView }: { onView: (id: number) => void }) {
   }
 
   if (!summary || !derived) return null;
+
+  async function handleDetailExport(resultId: number, format: "csv" | "pdf") {
+    const key = `${resultId}-${format}`;
+    setExportingKey(key);
+
+    try {
+      const detail = await getResultDetail(resultId);
+      if (format === "csv") {
+        exportDetailCSV(detail);
+      } else {
+        await exportDetailPDF(detail);
+      }
+    } catch (err) {
+      toast({
+        title: "Export failed",
+        description: err instanceof Error ? err.message : "Could not export this test sheet.",
+        variant: "destructive",
+      });
+    } finally {
+      setExportingKey(null);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -565,29 +636,56 @@ function ResultsList({ onView }: { onView: (id: number) => void }) {
           </div>
         ) : (
           results.map((r, i) => (
-            <button
+            <div
               key={r.id}
-              onClick={() => onView(r.id)}
-              className={`w-full text-left flex items-center gap-4 px-5 py-4 hover:bg-secondary/20 transition-colors group
+              className={`w-full flex items-center gap-4 px-5 py-4 hover:bg-secondary/20 transition-colors
                 ${i < results.length - 1 ? "border-b border-border" : ""}`}
             >
-              <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 text-sm font-bold
-                ${r.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                {r.percentage}%
+              <button
+                onClick={() => onView(r.id)}
+                className="group flex min-w-0 flex-1 items-center gap-4 text-left"
+              >
+                <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 text-sm font-bold
+                  ${r.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                  {r.percentage}%
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">
+                    {r.subject_name} - {r.module_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {r.score}/{r.total_questions} correct - {format(new Date(r.created_at), "dd MMM yyyy, HH:mm")}
+                  </p>
+                </div>
+                <Badge variant={r.passed ? "default" : "destructive"} className="text-[10px] shrink-0">
+                  {r.passed ? "Pass" : "Fail"}
+                </Badge>
+                <ChevronRight size={14} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+              </button>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 px-3 text-[11px]"
+                  disabled={exportingKey === `${r.id}-csv` || exportingKey === `${r.id}-pdf`}
+                  onClick={() => void handleDetailExport(r.id, "csv")}
+                >
+                  <Download size={12} />
+                  {exportingKey === `${r.id}-csv` ? "Exporting..." : "CSV"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 px-3 text-[11px]"
+                  disabled={exportingKey === `${r.id}-csv` || exportingKey === `${r.id}-pdf`}
+                  onClick={() => void handleDetailExport(r.id, "pdf")}
+                >
+                  <FileText size={12} />
+                  {exportingKey === `${r.id}-pdf` ? "Exporting..." : "PDF"}
+                </Button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">
-                  {r.subject_name} - {r.module_name}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {r.score}/{r.total_questions} correct - {format(new Date(r.created_at), "dd MMM yyyy, HH:mm")}
-                </p>
-              </div>
-              <Badge variant={r.passed ? "default" : "destructive"} className="text-[10px] shrink-0">
-                {r.passed ? "Pass" : "Fail"}
-              </Badge>
-              <ChevronRight size={14} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-            </button>
+            </div>
           ))
         )}
       </div>
