@@ -17,11 +17,18 @@ const recommendationRoutes = require("../routes/recommendations");
 
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:8080",
+  "http://localhost:5173",
+  "https://study-beta-henna.vercel.app",
+  ...(process.env.CLIENT_URL
+    ? process.env.CLIENT_URL.split(",").map((origin) => origin.trim()).filter(Boolean)
+    : []),
+];
+
 app.use(cors({
-  origin: [process.env.CLIENT_URL || "http://localhost:8080",
-   "https://study-beta-henna.vercel.app/",
-   ],
-    credentials: true,
+  origin: allowedOrigins,
+  credentials: true,
 }));
 app.use(express.json());
 
