@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/auth');
-const { generateAnswer } = require('../lib/ollamaClient');
+const { generateAnswer } = require('../lib/aiClient');
 const { searchChunks } = require('../services/ragSearch');
 const { ensureNotesSyncedForUser } = require('../services/ragNotes');
 const { getRevisionQueue } = require('../services/topicReviewSchedule');
@@ -416,19 +416,18 @@ ${ragSection}
 ${!hasData ? 'NOTE: No tests attempted yet. Encourage them to start.' : `NOTE: Student has taken ${ctx.total_tests} tests. Average: ${ctx.avg_score}%.`}`;
 }
 
-async function ollamaChatResponse(message, ctx, ragChunks = []) {
+async function aiChatResponse(message, ctx, ragChunks = []) {
   return generateAnswer(
     [
       { role: 'system', content: createSystemPrompt(ctx, ragChunks) },
       { role: 'user', content: message },
     ],
     {
-      model: process.env.OLLAMA_CHAT_MODEL || process.env.OLLAMA_MODEL || 'llama3:latest',
-      ollamaOptions: {
+      model: process.env.OPENROUTER_CHAT_MODEL || 'openai/gpt-4o-mini',
+      modelOptions: {
         temperature: 0.1,
         top_p: 0.85,
-        num_ctx: 2048,
-        num_predict: 280,
+        max_tokens: 280,
       },
     }
   );
@@ -594,7 +593,7 @@ router.post('/chat', verifyToken, async (req, res) => {
 
     let response;
     try {
-      response = await ollamaChatResponse(message, ctx, ragChunks);
+      response = await aiChatResponse(message, ctx, ragChunks);
     } catch (ollamaErr) {
       console.error('Ollama unavailable:', ollamaErr.message);
       response = buildOfflineChatResponse(message, ctx, ragChunks);

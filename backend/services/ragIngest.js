@@ -1,5 +1,5 @@
 const db = require('../config/db');
-const { embedText } = require('../lib/ollamaClient');
+const { embedText } = require('../lib/aiClient');
 const { chunkText } = require('../utils/chunkText');
 
 async function deleteChunksBySource({

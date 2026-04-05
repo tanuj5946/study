@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/auth');
-const { generateAnswer } = require('../lib/ollamaClient');
+const { generateAnswer } = require('../lib/aiClient');
 
 let initPromise;
 
@@ -196,11 +196,10 @@ ${String(note.content || '').slice(0, 7000)}`,
       },
     ],
     {
-      ollamaOptions: {
+      modelOptions: {
         temperature: 0.15,
         top_p: 0.85,
-        num_ctx: 4096,
-        num_predict: 420,
+        max_tokens: 420,
       },
     }
   );
@@ -281,10 +280,10 @@ ${note.content.slice(0, 7000)}`;
       },
     ],
     {
-      ollamaOptions: {
+      modelOptions: {
         temperature: 0.1,
         top_p: 0.8,
-        num_predict: 500,
+        max_tokens: 500,
       },
     }
   );
@@ -360,10 +359,10 @@ ${JSON.stringify(sectionPayload)}`,
       },
     ],
     {
-      ollamaOptions: {
+      modelOptions: {
         temperature: 0.1,
         top_p: 0.8,
-        num_predict: 800,
+        max_tokens: 800,
       },
     }
   );

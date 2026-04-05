@@ -1,5 +1,5 @@
 const db = require('../config/db');
-const { embedText } = require('../lib/ollamaClient');
+const { embedText } = require('../lib/aiClient');
 
 async function searchChunks({ user_id, query, limit = 5, threshold = 0.3 }) {
   const embedding = await embedText(query);
